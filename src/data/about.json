@@ -2,8 +2,17 @@
   "avatar": "/dat.jpg",
   "role": "Kỹ sư nghiên cứu và phát triển phần mềm - IOT",
   "location": "T.Thái Nguyên, VN",
-  "bio": "Xin chào! 🚀 Tôi là một Kỹ sư Phần mềm & IoT, chuyên xây dựng các giải pháp toàn diện từ lập trình phần mềm di động, IoT 💡 đến phát triển hệ thống Backend, API và giao diện Web. Với định hướng tối ưu hiệu năng và độ tin cậy ⚡, tôi luôn sẵn sàng đồng hành cùng bạn biến những ý tưởng công nghệ thành giải pháp thực tế! 🤝.",
-  "highlights": ["Kỹ sư Phần mềm & IoT", "Backend, API", "tối ưu hiệu năng", "giải pháp thực tế"],
-  "years": 5,
-  "todo": ["✔ Tốt nghiệp ICTU", "✔ GPA 3.83", "☐ IELTS 6.5"]
+  "bio": "Xin chào! 🚀 Mình là một kỹ sư phần mềm & IoT, chuyên xây dựng các giải pháp toàn diện từ lập trình phần mềm di động, IoT 💡 đến phát triển hệ thống Backend, API và giao diện Web. Với định hướng tối ưu hiệu năng và độ tin cậy, mình luôn sẵn sàng đồng hành cùng bạn biến những ý tưởng công nghệ thành giải pháp thực tế! 🤝.",
+  "highlights": [
+    "Kỹ sư Phần mềm & IoT",
+    "Backend, API",
+    "tối ưu hiệu năng",
+    "giải pháp thực tế"
+  ],
+  "years": 3,
+  "todo": [
+    "✔ Tốt nghiệp ICTU",
+    "✔ GPA 3.83",
+    "☐ IELTS 6.5"
+  ]
 }
