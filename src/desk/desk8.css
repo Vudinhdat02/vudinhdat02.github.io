@@ -264,3 +264,13 @@
   .tr-in { width: 100%; min-width: 0; font-size: 1.1rem; }
   .tr-kb { display: none; }
 }
+
+/* điện thoại: trang ảnh luôn cao đủ cho cả tấm ảnh (dọc hay ngang), sách tự cuộn nếu dài */
+@media (max-width: 759px) {
+  .ob-book { display: flex; flex-direction: column; overscroll-behavior: contain; }
+  .ob-book > .ob-page { flex: none; }
+  .ob-page.l { padding: 14px 14px 30px; }
+  .ob-photo { flex: none; width: 100%; }
+  .ob-frame { padding: 12px; }
+  .ob-frame img { max-width: 100%; max-height: 50svh; }
+}
