@@ -3,7 +3,7 @@
  * kỹ năng, 3 dự án, 5 trang nhật ký mới nhất và bộ thẻ mở các trang riêng.
  * Toàn bộ chuyển động khi cuộn dùng GSAP ScrollTrigger; rời trang chủ thì mọi hiệu ứng được dọn sạch.
  */
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { profile } from '../data/profile';
@@ -11,6 +11,9 @@ import projectsData from '../data/projects.json';
 import achievementsData from '../data/achievements.json';
 import skillsData from '../data/skills.json';
 import introData from '../data/intro.json';
+import aboutData from '../data/about.json';
+import { DocEditor, ListEditor, useEditable, useEditableDoc } from './Editor';
+import { ABOUT_FIELDS, ACH_BLANK, ACH_FIELDS, ACH_PREVIEW, PROJ_BLANK, PROJ_FIELDS, PROJ_PREVIEW, SKILL_BLANK, SKILL_FIELDS, SKILL_PREVIEW } from './fields';
 import { asset } from '../utils/asset';
 import { thock, thud, whoosh } from './sound';
 import { DiaryHome, useDiary } from './Diary';
@@ -31,13 +34,14 @@ export const HOME_SECTIONS = [
   { id: 'muc-them', label: 'Các trang khác' },
 ];
 export const yearOf = (d) => { const m = String(d).match(/(\d{4})/g); return m ? +m[m.length - 1] * 100 + (m.length > 1 ? 1 : 0) : 0; };
-export const ACH = [...achievementsData].sort((a, b) => yearOf(a.date) - yearOf(b.date));
-// trang chủ chỉ hiện vài cái tiêu biểu; xem hết thì mở cửa sổ riêng
-const ACH_HOME = (() => {
-  const pick = [...ACH.filter((a) => a.featured), ...[...ACH].reverse().filter((a) => !a.featured)].slice(0, 6);
-  return ACH.filter((a) => pick.includes(a));
-})();
-const PROJ_HOME = (() => { const f = projectsData.filter((p) => p.pinned || p.featured); return (f.length ? f : projectsData).slice(0, 3); })();
+const sortAch = (list) => [...list].sort((a, b) => yearOf(a.date) - yearOf(b.date));
+export const ACH = sortAch(achievementsData);
+// trang chủ chỉ hiện vài cái tiêu biểu; xem hết thì mở trang riêng
+const achHome = (all) => {
+  const pick = [...all.filter((a) => a.featured), ...[...all].reverse().filter((a) => !a.featured)].slice(0, 6);
+  return all.filter((a) => pick.includes(a));
+};
+const projHome = (list) => { const f = list.filter((p) => p.pinned || p.featured); return (f.length ? f : list).slice(0, 3); };
 const stampFor = (a) => (/xuất sắc|cao nhất|giải/i.test(a.title) ? 'XUẤT SẮC' : /5 tốt|tiêu biểu/i.test(a.title) ? 'TIÊU BIỂU' : /khen/i.test(a.title) ? 'KHEN THƯỞNG' : 'ĐÃ ĐẠT');
 const REMARKS = ['Xuất sắc!', 'Rất sáng tạo!', 'Ý tưởng hay, phát huy!', 'Trình bày rõ ràng!', 'Làm kỹ, rất tốt!', 'Tuyệt vời!'];
 const vi = (v) => (typeof v === 'object' && v ? v.vi || v.en : v);
@@ -52,16 +56,56 @@ const KB_ROWS = [
 ];
 const keyId = (k) => ({ Esc: 'escape', '⌫': 'backspace', ' ': 'space' }[k] || k.toLowerCase());
 const WIDE = { Tab: 1.5, '\\': 1.5, Caps: 1.8, Enter: 2.2, Shift: 2.4, Ctrl: 1.5, Alt: 1.3, Fn: 1.3, ' ': 6.4, '⌫': 1.6, Esc: 1.2 };
-const ALL_SKILLS = skillsData.flatMap((g) => splitSkills(g.desc));
 
-export default function Home({ onNav, onLightbox }) {
+/* ---------- trang chủ: dữ liệu sửa được trên web (khi đăng nhập #admin) ---------- */
+const EDITS = [
+  ['about', '🙋 Giới thiệu & ảnh đại diện'],
+  ['ach', '📌 Hành trình (thành tích)'],
+  ['skills', '⌨️ Kỹ năng'],
+  ['proj', '📝 Dự án (bài kiểm tra)'],
+];
+export default function Home(props) {
+  const about = useEditableDoc(aboutData, 'about');
+  const ach = useEditable(achievementsData, 'achievements');
+  const skills = useEditable(skillsData, 'skills');
+  const proj = useEditable(projectsData, 'projects');
+  const [panel, setPanel] = useState(null);
+  const [menu, setMenu] = useState(false);
+  const data = useMemo(() => ({ about: { ...aboutData, ...about.doc }, ach: ach.items, skills: skills.items, projects: proj.items }), [about.doc, ach.items, skills.items, proj.items]);
+  const key = useMemo(() => hash(JSON.stringify(data)), [data]);
+  const close = () => setPanel(null);
+  const canEdit = about.canEdit;
+  return (
+    <>
+      <HomeView key={key} {...props} data={data} />
+      {canEdit && (
+        <div className={`ed-menu ${menu ? 'open' : ''}`}>
+          {menu && <div className="ed-menu-list">{EDITS.map(([k, t]) => <button key={k} onClick={() => { setPanel(k); setMenu(false); thock(1.2); }}>{t}</button>)}</div>}
+          <button className="ed-fab" onClick={() => { setMenu(!menu); thock(1.2); }}>{menu ? '✕ Đóng' : '✎ Sửa trang chủ'}</button>
+        </div>
+      )}
+      {panel === 'about' && <DocEditor ed={about} title="Sửa phần giới thiệu" fields={ABOUT_FIELDS} onClose={close} />}
+      {canEdit && <ListEditor noFab open={panel === 'ach'} onClose={close} ed={ach} label="thành tích" fields={ACH_FIELDS} blank={ACH_BLANK} preview={ACH_PREVIEW} />}
+      {canEdit && <ListEditor noFab open={panel === 'skills'} onClose={close} ed={skills} label="kỹ năng" fields={SKILL_FIELDS} blank={SKILL_BLANK} preview={SKILL_PREVIEW} />}
+      {canEdit && <ListEditor noFab open={panel === 'proj'} onClose={close} ed={proj} label="dự án" fields={PROJ_FIELDS} blank={PROJ_BLANK} preview={PROJ_PREVIEW} />}
+    </>
+  );
+}
+const hash = (str) => { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return h; };
+
+function HomeView({ onNav, onLightbox, data }) {
   const root = useRef(null);
   const diary = useDiary();
+  const about = data.about;
+  const ACHS = sortAch(data.ach);
+  const ACH_HOME = achHome(ACHS);
+  const PROJ_HOME = projHome(data.projects);
+  const ALL_SKILLS = data.skills.flatMap((g) => splitSkills(g.desc || ''));
 
   /* ---------- màn hình CRT tự gõ chữ (ghi thẳng vào DOM cho nhẹ) ---------- */
   useEffect(() => {
     const els = root.current.querySelectorAll('.crt-line .txt');
-    const lines = ['C:\\> chay dat.exe', 'Xin chào, mình là', profile.role.vi];
+    const lines = ['C:\\> chay dat.exe', 'Xin chào, mình là', about.role];
     let li = 0, ci = 0, timer;
     const tick = () => {
       if (li >= lines.length) return;
@@ -205,18 +249,16 @@ export default function Home({ onNav, onLightbox }) {
   const press = (e) => { e.currentTarget.classList.add('down'); thock(); };
   const release = (e) => e.currentTarget.classList.remove('down');
 
-  const bio = vi(profile.bio);
-  const HL = ['Kỹ sư Phần mềm & IoT', 'Backend, API', 'tối ưu hiệu năng', 'giải pháp thực tế'];
-  const bioWords = renderBio(bio, HL);
+  const bioWords = renderBio(about.bio || '', (about.highlights || []).filter(Boolean));
   const gpa = (introData.find((x) => /education/i.test(x.name))?.desc.match(/GPA:\s*([\d.]+)/) || [])[1] || '3.83';
-  const counts = { 'du-an': projectsData.length, 'thanh-tich': ACH.length, 'nhat-ky': diary.posts.length };
+  const counts = { 'du-an': data.projects.length, 'thanh-tich': ACHS.length, 'nhat-ky': diary.posts.length };
 
   return (
     <div ref={root} className="home">
       {/* ================= HERO ================= */}
       <div className="pin-wrap"><section className="hero">
         <div className="desk-surface" />
-        <div className="desk-item note-a" data-depth="1.4"><div className="sticky yellow">TODO:<br />✔ Tốt nghiệp ICTU<br />✔ GPA {gpa}<br />☐ IELTS 6.5</div></div>
+        <div className="desk-item note-a" data-depth="1.4"><div className="sticky yellow">TODO:{(about.todo || []).map((t, i) => <span key={i}><br />{t}</span>)}</div></div>
         <div className="desk-item note-b" data-depth="1.1"><div className="sticky pink">Nhấn phím<br /><b>1 → 7</b><br />để mở từng trang ✍</div></div>
         <div className="desk-item pencil" data-depth="0.8"><i /></div>
         <div className="desk-item ruler" data-depth="0.6">{Array.from({ length: 30 }, (_, i) => <span key={i} className={i % 5 ? '' : 'big'} />)}</div>
@@ -273,14 +315,14 @@ export default function Home({ onNav, onLightbox }) {
             <p className="bio">{bioWords}</p>
             <div className="stats">
               <div className="stat"><b className="stat-n" data-to={parseFloat(gpa)} data-dec="2">0</b><span>GPA / 4.0</span></div>
-              <div className="stat"><b className="stat-n" data-to="5" data-suf="+">0</b><span>năm kinh nghiệm</span></div>
-              <div className="stat"><b className="stat-n" data-to={ACH.length}>0</b><span>giấy khen, thành tích</span></div>
-              <div className="stat"><b className="stat-n" data-to={projectsData.length}>0</b><span>dự án mã nguồn mở</span></div>
+              <div className="stat"><b className="stat-n" data-to={+about.years || 0} data-suf="+">0</b><span>năm kinh nghiệm</span></div>
+              <div className="stat"><b className="stat-n" data-to={ACHS.length}>0</b><span>giấy khen, thành tích</span></div>
+              <div className="stat"><b className="stat-n" data-to={data.projects.length}>0</b><span>dự án mã nguồn mở</span></div>
             </div>
             <svg className="doodle d1" viewBox="0 0 120 60" aria-hidden="true"><path d="M5 40 C 30 5, 60 5, 80 30 S 110 50, 115 20" /><path d="M115 20 l-12 2 M115 20 l-2 12" /></svg>
             <svg className="doodle d2" viewBox="0 0 60 60" aria-hidden="true"><path d="M30 5 L36 24 L56 24 L40 36 L46 55 L30 43 L14 55 L20 36 L4 24 L24 24 Z" /></svg>
           </div>
-          <figure className="polaroid" data-par="12"><span className="tape" /><img src={asset(profile.avatar)} alt={profile.name} /><figcaption>dathoaqua · {vi(profile.location)}</figcaption></figure>
+          <figure className="polaroid" data-par="12"><span className="tape" /><img src={asset(about.avatar || profile.avatar)} alt={profile.name} /><figcaption>dathoaqua · {about.location}</figcaption></figure>
         </div>
         <div className="about-stickers" aria-hidden="true">
           <span className="stk s1" data-par="40">React</span><span className="stk s2" data-par="70">IoT ⚡</span><span className="stk s3" data-par="25">C# · .NET</span><span className="stk s4" data-par="55">☕ ×3</span>
@@ -293,7 +335,7 @@ export default function Home({ onNav, onLightbox }) {
         <div className="jr-track">
           <div className="jr-line"><span className="jr-pencil" /></div>
           {ACH_HOME.map((a, i) => (
-            <article key={a.id} className={`jr-card ${i % 2 ? 'low' : 'high'}`} style={{ '--r': `${((i * 37) % 9) - 4}deg` }}
+            <article key={a.id || a.title} className={`jr-card ${i % 2 ? 'low' : 'high'}`} style={{ '--r': `${((i * 37) % 9) - 4}deg` }}
               onClick={(e) => a.image && onLightbox({ item: { src: a.image, title: a.title, sub: `${a.date}${a.desc ? ' · ' + a.desc : ''}` }, from: e.currentTarget.querySelector('img')?.getBoundingClientRect() })}>
               <span className="pin" />
               <div className="jr-photo">{a.image && <img src={asset(a.image)} alt={a.title} loading="lazy" />}</div>
@@ -304,7 +346,7 @@ export default function Home({ onNav, onLightbox }) {
             </article>
           ))}
           <button className="jr-end jr-all" onClick={() => onNav('thanh-tich')} data-mag="0.2">
-            <span className="pin" /><b>+{ACH.length - ACH_HOME.length}</b><span>Xem tất cả {ACH.length} thành tích →</span>
+            <span className="pin" /><b>+{ACHS.length - ACH_HOME.length}</b><span>Xem tất cả {ACHS.length} thành tích →</span>
           </button>
         </div>
       </section></div>
@@ -320,11 +362,11 @@ export default function Home({ onNav, onLightbox }) {
         <div className="board">
           <span className="smudge s1" /><span className="smudge s2" /><span className="smudge s3" />
           <h2 className="chalk-title"><Bounce text="Kỹ năng" /><Doodle kind="under" className="marker-under" color="#d33a2c" width={4} /></h2>
-          {skillsData.map((g) => (
+          {data.skills.map((g) => (
             <div className="sk-row" key={g.name}>
               <span className="sk-label">{g.name}</span>
               <div className="sk-caps">
-                {splitSkills(g.desc).map((s) => (
+                {splitSkills(g.desc || '').map((s) => (
                   <button key={s} className="sk-cap" onPointerDown={press} onPointerUp={release} onPointerLeave={release}><span>{s}</span></button>
                 ))}
               </div>
@@ -341,7 +383,7 @@ export default function Home({ onNav, onLightbox }) {
         <p className="exam-count">Bài <b>1</b> / {PROJ_HOME.length}</p>
         <div className="exam-stack">
           {PROJ_HOME.map((p, i) => (
-            <article key={p.id} className="paper">
+            <article key={p.id || p.title} className="paper">
               <header className="exam-head">
                 <div><span>Họ và tên:</span> <i>Vũ Đình Đạt</i></div>
                 <div><span>Môn:</span> <i>{p.category}</i></div>
@@ -354,12 +396,12 @@ export default function Home({ onNav, onLightbox }) {
               </div>
               <h3 className="exam-q">Câu {i + 1}. {p.title}</h3>
               <p className="exam-a">{vi(p.desc)}</p>
-              <div className="exam-tags">{p.tags.map((t) => <span key={t}>{t}</span>)}</div>
+              <div className="exam-tags">{(p.tags || []).map((t) => <span key={t}>{t}</span>)}</div>
               {p.repo && <a className="exam-link" href={p.repo} target="_blank" rel="noreferrer" data-mag="0.3">Xem mã nguồn →</a>}
             </article>
           ))}
         </div>
-        <button className="exam-all" data-mag="0.25" onClick={() => onNav('du-an')}>🗂 Mở tủ hồ sơ: tất cả {projectsData.length} dự án →</button>
+        <button className="exam-all" data-mag="0.25" onClick={() => onNav('du-an')}>🗂 Mở tủ hồ sơ: tất cả {data.projects.length} dự án →</button>
       </section></div>
 
       {/* ================= NHẬT KÝ ================= */}

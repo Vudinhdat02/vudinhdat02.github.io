@@ -5,10 +5,10 @@
  *  - bản xem thử (VITE_DESK_DEMO=1): sửa được nhưng chỉ nằm trong trình duyệt này
  * Khách xem trang bình thường không thấy nút sửa.
  */
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
-import { EDIT_MODE, newId, uploadImage, useEditableList } from '../admin/adminApi';
+import { EDIT_MODE, GH_MODE, loadData, newId, saveData, uploadImage, useEditableList } from '../admin/adminApi';
 import { asset } from '../utils/asset';
 import { DEMO, useDiary } from './Diary';
 import { thock, pop } from './sound';
@@ -22,6 +22,79 @@ export function useEditable(initial, file) {
   return { items, save, status: real.status, canEdit: EDIT_MODE || DEMO, demo };
 }
 
+/** Một file dữ liệu dạng đối tượng (vd: phần giới thiệu) sửa được trên web. */
+export function useEditableDoc(initial, file) {
+  const [doc, setDoc] = useState(initial);
+  const [status, setStatus] = useState({ busy: false, error: '' });
+  const demo = DEMO && !EDIT_MODE;
+  useEffect(() => {
+    if (!GH_MODE) return undefined;
+    let alive = true;
+    loadData(file).then((d) => { if (alive && d && typeof d === 'object') setDoc(d); }).catch(() => {});
+    return () => { alive = false; };
+  }, [file]);
+  const save = async (next) => {
+    if (demo) { setDoc(next); return true; }
+    const prev = doc; setDoc(next); setStatus({ busy: true, error: '' });
+    try { await saveData(file, next); setStatus({ busy: false, error: '' }); return true; } catch (e) { setDoc(prev); setStatus({ busy: false, error: e.message }); return false; }
+  };
+  return { doc, save, status, canEdit: EDIT_MODE || DEMO, demo };
+}
+
+/* tải ảnh mới chọn lên, trả về giá trị đã có đường dẫn ảnh */
+async function withUploads(value, files, demo, name) {
+  let v = { ...value };
+  for (const [k, fl] of Object.entries(files)) {
+    if (!fl) continue;
+    v = setK(v, k, demo ? URL.createObjectURL(fl) : await uploadImage(fl, name));
+  }
+  return v;
+}
+
+/* khung ngăn kéo bên phải dùng chung */
+function Drawer({ title, onClose, demo, error, children }) {
+  const ref = useRef(null);
+  const { lenis } = useDiary() || {};
+  useLayoutEffect(() => {
+    lenis?.current?.stop();
+    gsap.fromTo(ref.current.querySelector('.ed-panel'), { xPercent: 105 }, { xPercent: 0, duration: 0.5, ease: 'power3.out' });
+    gsap.fromTo(ref.current.querySelectorAll('.ed-item, .ed-field, .ed-check'), { x: 30, opacity: 0 }, { x: 0, opacity: 1, stagger: 0.025, duration: 0.35, delay: 0.15, ease: 'power3.out' });
+    return () => lenis?.current?.start();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const close = () => gsap.to(ref.current.querySelector('.ed-panel'), { xPercent: 105, duration: 0.3, ease: 'power2.in', onComplete: onClose });
+  return createPortal(
+    <div className="ed-wrap" ref={ref}>
+      <div className="ed-bg" onClick={close} />
+      <aside className="ed-panel" role="dialog" aria-label={title}>
+        <header className="ed-head"><b>{title}</b><button className="ed-x" onClick={close} aria-label="Đóng">✕</button></header>
+        {demo && <p className="ed-note">Bản xem thử: bạn sửa thử được, nhưng thay đổi chỉ nằm trong trình duyệt này.</p>}
+        {typeof children === 'function' ? children(close) : children}
+        {error && !demo && <p className="ed-err">{error}</p>}
+      </aside>
+    </div>,
+    document.body,
+  );
+}
+
+/** Sửa một đối tượng (không phải danh sách): mở ra là form luôn. */
+export function DocEditor({ ed, title, fields, onClose }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Drawer title={title} onClose={onClose} demo={ed.demo} error={ed.status.error}>
+      {(close) => (
+        <Form fields={fields} init={ed.doc} busy={busy} onCancel={close} onSave={async (value, files) => {
+          setBusy(true);
+          try {
+            const v = await withUploads(value, files, ed.demo, 'anh-dai-dien');
+            if (!(await ed.save(v))) throw new Error(ed.status.error || 'Chưa lưu được, thử lại nhé.');
+            pop(); close();
+          } finally { setBusy(false); }
+        }} />
+      )}
+    </Drawer>
+  );
+}
+
 /* đọc / ghi theo đường dẫn "desc.vi" */
 const getK = (o, k) => k.split('.').reduce((v, p) => (v == null ? v : typeof v === 'string' && p === 'vi' ? v : v[p]), o);
 const setK = (o, k, val) => {
@@ -31,6 +104,12 @@ const setK = (o, k, val) => {
   out[a] = { ...(typeof cur === 'object' && cur ? cur : { vi: cur || '' }), [b]: val };
   return out;
 };
+
+/* ô nhập danh sách cách nhau bằng dấu phẩy: giữ nguyên chữ đang gõ (kể cả dấu phẩy cuối) */
+function TagsInput({ id, value, onChange }) {
+  const [text, setText] = useState(() => (value || []).join(', '));
+  return <input id={id} value={text} placeholder="cách nhau bằng dấu phẩy" onChange={(e) => { setText(e.target.value); onChange(e.target.value.split(',').map((x) => x.trim()).filter(Boolean)); }} />;
+}
 
 function Form({ fields, init, onCancel, onSave, busy }) {
   const [v, setV] = useState(init);
@@ -67,7 +146,7 @@ function Form({ fields, init, onCancel, onSave, busy }) {
           <label key={f.key} className="ed-field" htmlFor={id}>
             <span>{f.label}</span>
             {f.type === 'area' ? <textarea id={id} rows={4} value={val || ''} onChange={(e) => set(f.key, e.target.value)} />
-              : f.type === 'tags' ? <input id={id} value={(val || []).join(', ')} onChange={(e) => set(f.key, e.target.value.split(',').map((x) => x.trim()).filter(Boolean))} placeholder="cách nhau bằng dấu phẩy" />
+              : f.type === 'tags' ? <TagsInput id={id} value={val} onChange={(v) => set(f.key, v)} />
                 : <input id={id} type={f.type === 'number' ? 'number' : f.type === 'url' ? 'url' : 'text'} value={val ?? ''} list={f.options ? `${id}-o` : undefined}
                   onChange={(e) => set(f.key, f.type === 'number' ? (e.target.value === '' ? '' : +e.target.value) : e.target.value)} />}
             {f.options && <datalist id={`${id}-o`}>{f.options.map((o) => <option key={o} value={o} />)}</datalist>}
@@ -83,8 +162,10 @@ function Form({ fields, init, onCancel, onSave, busy }) {
   );
 }
 
-export function ListEditor({ ed, label, fields, blank, preview }) {
-  const [open, setOpen] = useState(false);
+export function ListEditor({ ed, label, fields, blank, preview, open: openP, onClose, noFab }) {
+  const [openS, setOpenS] = useState(false);
+  const open = openP ?? openS;
+  const setOpen = (v) => { if (!v && onClose) onClose(); setOpenS(v); };
   const [form, setForm] = useState(null); // { index, value }
   const [busy, setBusy] = useState(false);
   const ref = useRef(null);
@@ -116,7 +197,7 @@ export function ListEditor({ ed, label, fields, blank, preview }) {
 
   return (
     <>
-      <button className="ed-fab" onClick={() => { setOpen(true); thock(1.2); }}>✎ Sửa {label}</button>
+      {!noFab && <button className="ed-fab" onClick={() => { setOpen(true); thock(1.2); }}>✎ Sửa {label}</button>}
       {open && createPortal(
         <div className="ed-wrap" ref={ref}>
           <div className="ed-bg" onClick={close} />

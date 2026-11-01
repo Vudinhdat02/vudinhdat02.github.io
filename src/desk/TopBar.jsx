@@ -78,7 +78,6 @@ export default function TopBar({ sections, active, onGo, onBrand, onSearch, nigh
           </button>
           <button className="tb-tool" onClick={onMute} title={mute ? 'Bật âm thanh' : 'Tắt âm thanh'}>{mute ? '🔇' : '🔊'}</button>
           {canWrite && <button className="tb-write" onClick={onWrite}>✍ Viết nhật ký</button>}
-          {!canWrite && onAdmin && <button className="tb-tool" onClick={onAdmin} title="Đăng nhập chủ trang">🔑</button>}
           <button className="tb-burger" onClick={() => { setOpen(!open); thock(); }} aria-expanded={open} aria-label="Mở mục lục"><i /><i /><i /></button>
         </div>
       </div>

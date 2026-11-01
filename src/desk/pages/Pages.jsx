@@ -33,6 +33,9 @@ export default function SubPage({ id, onNav, onNight }) {
   const count = { 'du-an': `${projects.length} dự án`, 'thanh-tich': `${achievements.length} thành tích`, 'nhat-ky': `${posts.length} trang nhật ký` }[id];
   return (
     <main className={`page page-${id}`} style={{ '--c': r.color }}>
+      {id === 'thanh-tich' ? (
+        <nav className="gx-crumb"><button onClick={() => onNav('')}>Trang chủ</button><span>/</span><b>{r.label}</b></nav>
+      ) : (<>
       <header className="pg-head">
         <nav className="pg-crumb"><button onClick={() => onNav('')}>⌂ Trang chủ</button><span>/</span><b>{r.label}</b></nav>
         <div className="pg-title-row">
@@ -50,6 +53,7 @@ export default function SubPage({ id, onNav, onNight }) {
         <span className="pg-tape t1" /><span className="pg-tape t2" />
       </header>
       <Tape items={TAPES[id] || []} tilt={-1.6} color={r.color} />
+      </>)}
       <section className="pg-body">
         {id === 'du-an' && <ProjectsPage />}
         {id === 'thanh-tich' && <AchievementsPage />}

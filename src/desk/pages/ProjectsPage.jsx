@@ -4,6 +4,7 @@ import projects from '../../data/projects.json';
 import { ListEditor, useEditable } from '../Editor';
 import { vi } from '../Diary';
 import Collection from './Collection';
+import { PROJ_BLANK, PROJ_FIELDS, PROJ_PREVIEW } from '../fields';
 
 const CAT_IC = { MOBILE: '📱', IOT: '🛰', WEB: '🌐' };
 const rarityOf = (p) => ((p.tags || []).length >= 6 ? 'legend' : (p.tags || []).length >= 4 ? 'rare' : 'common');
@@ -32,17 +33,6 @@ const toCards = (list) => list.map((p, i) => ({
   ),
 }));
 
-const FIELDS = [
-  { key: 'title', label: 'Tên dự án', type: 'text', required: true },
-  { key: 'category', label: 'Nhóm (vd: MOBILE, IOT, WEB)', type: 'text', options: ['MOBILE', 'IOT', 'WEB'] },
-  { key: 'year', label: 'Năm', type: 'number' },
-  { key: 'tags', label: 'Công nghệ', type: 'tags' },
-  { key: 'desc.vi', label: 'Mô tả', type: 'area' },
-  { key: 'repo', label: 'Link mã nguồn (GitHub)', type: 'url' },
-  { key: 'demo', label: 'Link chạy thử', type: 'url' },
-  { key: 'featured', label: 'Dự án nổi bật', type: 'check' },
-];
-
 export default function ProjectsPage() {
   const ed = useEditable(projects, 'projects');
   const cards = useMemo(() => toCards(ed.items), [ed.items]);
@@ -51,9 +41,7 @@ export default function ProjectsPage() {
     <>
       <Collection key={key} cards={cards} hand={cards} groups={[...new Set(cards.map((c) => c.group))]} groupLabel={(g) => `${CAT_IC[g] || ''} ${g}`}
         unit="thẻ dự án" handTitle="Bộ bài dự án" albumTitle="Album thẻ dự án" packLabel="Mở gói dự án" />
-      {ed.canEdit && <ListEditor ed={ed} label="dự án" fields={FIELDS}
-        blank={() => ({ title: '', category: 'WEB', year: new Date().getFullYear(), hue: Math.floor(Math.random() * 360), featured: false, pinned: false, desc: { vi: '', en: '' }, tags: [], repo: '', demo: '', images: [] })}
-        preview={(p) => ({ img: null, title: p.title, sub: `${p.category} · ${p.year} · ${(p.tags || []).slice(0, 3).join(', ')}` })} />}
+      {ed.canEdit && <ListEditor ed={ed} label="dự án" fields={PROJ_FIELDS} blank={PROJ_BLANK} preview={PROJ_PREVIEW} />}
     </>
   );
 }

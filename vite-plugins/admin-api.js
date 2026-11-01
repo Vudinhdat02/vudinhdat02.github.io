@@ -2,7 +2,7 @@
  * Local "save" API — only active during `npm run dev` (never in the built site).
  *
  * Lets the in-page editors write straight into the project:
- *   POST /__admin/save    { file: 'achievements' | 'skills' | 'intro' | 'blog' | 'projects', data }  → src/data/<file>.json
+ *   POST /__admin/save    { file: 'about' | 'achievements' | 'skills' | 'intro' | 'blog' | 'projects', data }  → src/data/<file>.json
  *   POST /__admin/upload  { name, dataUrl, folder? }                  → public/uploads/<file>, returns { url }
  *   POST /__admin/cv      { dataUrl }                                  → public/cv.pdf
  *   POST /__admin/remove-upload { url }                                → deletes a file in public/uploads/
@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DATA_FILES = new Set(['achievements', 'skills', 'intro', 'blog', 'projects']);
+const DATA_FILES = new Set(['about', 'achievements', 'skills', 'intro', 'blog', 'projects']);
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 const MAX_BYTES = 25 * 1024 * 1024;
 
@@ -56,7 +56,7 @@ export default function adminApi() {
           const route = req.url.split('?')[0];
 
           if (route === '/__admin/save') {
-            if (!DATA_FILES.has(body.file) || !Array.isArray(body.data)) throw new Error('Tên file không hợp lệ');
+            if (!DATA_FILES.has(body.file) || !body.data || typeof body.data !== 'object') throw new Error('Tên file không hợp lệ');
             const target = path.join(root, 'src', 'data', `${body.file}.json`);
             fs.writeFileSync(target, JSON.stringify(body.data, null, 2) + '\n', 'utf8');
             return send(200, { ok: true });
