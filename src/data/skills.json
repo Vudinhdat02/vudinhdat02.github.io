@@ -1,5 +1,10 @@
 [
   {
+    "name": "IoT",
+    "desc": "ESP32, STM32",
+    "id": "mvy2ljmawrsw"
+  },
+  {
     "name": "Languages",
     "desc": "C# - .NET - Kotlin - Java - C/C++ - JavaScript - React - Next.js - Node.js"
   },
