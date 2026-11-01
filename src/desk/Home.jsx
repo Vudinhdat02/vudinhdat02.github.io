@@ -146,8 +146,11 @@ function HomeView({ onNav, onLightbox, data }) {
       window.addEventListener('mousemove', onMove);
       self.add(() => () => window.removeEventListener('mousemove', onMove));
 
+      /* điện thoại: rút ngắn các đoạn ghim, nội dung hiện ngay, đỡ phải cuộn mỏi tay */
+      const MOB = window.matchMedia('(max-width: 759px)').matches;
+
       /* ====== 1. HERO: zoom vào màn hình CRT ====== */
-      const hero = gsap.timeline({ scrollTrigger: { trigger: '.hero', start: 'top top', end: '+=140%', scrub: 1, pin: true, anticipatePin: 1 } });
+      const hero = gsap.timeline({ scrollTrigger: { trigger: '.hero', start: 'top top', end: MOB ? '+=70%' : '+=140%', scrub: 1, pin: true, anticipatePin: 1 } });
       hero
         .to(q('.hero-hint'), { opacity: 0, y: 30, duration: 0.15 }, 0)
         .to(q('.kb'), { yPercent: 120, rotateX: 55, opacity: 0, duration: 0.6 }, 0)
@@ -162,7 +165,10 @@ function HomeView({ onNav, onLightbox, data }) {
         .fromTo(q('.hero-wipe'), { clipPath: 'circle(0% at 50% 45%)' }, { clipPath: 'circle(150% at 50% 45%)', duration: 0.3, ease: 'power2.in' }, 0.8);
 
       /* ====== 2. GIỚI THIỆU: trang vở ====== */
-      const about = gsap.timeline({ scrollTrigger: { trigger: '.about', start: 'top top', end: '+=140%', scrub: 1, pin: true } });
+      const about = gsap.timeline({ scrollTrigger: MOB
+        ? { trigger: '.about', start: 'top 70%', toggleActions: 'play none none none' }
+        : { trigger: '.about', start: 'top top', end: '+=140%', scrub: 1, pin: true } });
+      if (MOB) about.timeScale(0.55);
       about
         .from(q('.about .notebook'), { y: 120, rotate: -4, duration: 0.25 }, 0)
         .fromTo(q('.about .hw-title'), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.2, ease: 'none' }, 0.1)
@@ -194,15 +200,15 @@ function HomeView({ onNav, onLightbox, data }) {
         gsap.to(q('.jr-year'), { yPercent: -40, ease: 'none', scrollTrigger: { trigger: '.journey', start: 'top top', end: () => '+=' + dist(), scrub: true } });
       });
       mm.add('(max-width: 759px)', () => {
-        q('.jr-card').forEach((card) => gsap.from(card, { x: 80, rotate: 8, opacity: 0, duration: 0.7, ease: 'back.out(1.4)', scrollTrigger: { trigger: card, start: 'top 85%' } }));
+        gsap.from(q('.jr-card'), { y: 60, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'back.out(1.4)', scrollTrigger: { trigger: '.jr-track', start: 'top 85%' } });
       });
 
       /* ====== 4. KỸ NĂNG: phím rơi xuống bảng đen ====== */
       gsap.fromTo(q('.board .chalk-title'), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', ease: 'none', scrollTrigger: { trigger: '.board', start: 'top 75%', end: 'top 35%', scrub: 1 } });
       gsap.from(q('.board .sk-label'), { x: -60, opacity: 0, stagger: 0.12, duration: 0.6, scrollTrigger: { trigger: '.board', start: 'top 60%' } });
       gsap.from(q('.board .sk-cap'), {
-        y: () => -window.innerHeight * 0.9, rotate: () => gsap.utils.random(-70, 70), opacity: 0,
-        stagger: { each: 0.035, from: 'random' }, duration: 1.1, ease: 'bounce.out',
+        y: () => -window.innerHeight * (MOB ? 0.25 : 0.9), rotate: () => gsap.utils.random(-70, 70) * (MOB ? 0.3 : 1), opacity: 0,
+        stagger: { each: MOB ? 0.02 : 0.035, from: 'random' }, duration: MOB ? 0.6 : 1.1, ease: MOB ? 'back.out(1.6)' : 'bounce.out',
         scrollTrigger: { trigger: '.board', start: 'top 55%', toggleActions: 'play none none reverse', onEnter: () => { let n = 0; const id = setInterval(() => { thock(0.8 + Math.random() * 0.6); if (++n > 10) clearInterval(id); }, 90); } },
       });
       gsap.to(q('.board .eraser-swipe'), { xPercent: 900, ease: 'none', scrollTrigger: { trigger: '.board', start: 'top 80%', end: 'bottom 20%', scrub: 1 } });
@@ -213,7 +219,7 @@ function HomeView({ onNav, onLightbox, data }) {
       const papers = q('.paper');
       const n = papers.length;
       papers.forEach((p, i) => gsap.set(p, { zIndex: n - i, rotate: i === 0 ? 0 : gsap.utils.random(-5, 5), scale: 1 - Math.min(i, 3) * 0.03, y: Math.min(i, 3) * 14 }));
-      const proj = gsap.timeline({ scrollTrigger: { trigger: '.projects', start: 'top top', end: () => '+=' + n * 75 + '%', scrub: 1, pin: true, invalidateOnRefresh: true,
+      const proj = gsap.timeline({ scrollTrigger: { trigger: '.projects', start: 'top top', end: () => '+=' + n * (MOB ? 45 : 75) + '%', scrub: 1, pin: true, invalidateOnRefresh: true,
         onUpdate: (st) => { const k = Math.min(n, Math.floor(st.progress * n * 0.999) + 1); const c = q('.exam-count b')[0]; if (c && c.textContent !== String(k)) c.textContent = k; } } });
       proj.fromTo(q('.paper')[0].querySelectorAll('.score path'), { strokeDashoffset: 300 }, { strokeDashoffset: 0, duration: 0.3, ease: 'none' }, 0)
         .from(q('.paper')[0].querySelectorAll('.score-n, .remark'), { opacity: 0, scale: 1.6, duration: 0.15 }, 0.2);
@@ -332,6 +338,7 @@ function HomeView({ onNav, onLightbox, data }) {
       {/* ================= HÀNH TRÌNH ================= */}
       <div className="pin-wrap"><section className="journey cork" id="muc-hanh-trinh">
         <h2 className="sec-title on-cork"><Bounce text="Hành trình" /> <span className="emo">📌</span></h2>
+        <p className="jr-swipe" aria-hidden="true">vuốt ngang để xem tiếp →</p>
         <div className="jr-track">
           <div className="jr-line"><span className="jr-pencil" /></div>
           {ACH_HOME.map((a, i) => (

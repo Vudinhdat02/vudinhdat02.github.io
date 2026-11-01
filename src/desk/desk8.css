@@ -226,3 +226,41 @@
 @media (min-width: 760px) and (max-width: 1100px) {
   .projects .exam-all { padding: 10px 16px; font-size: 1.1rem; }
 }
+
+/* =================================================================
+ *  ĐIỆN THOẠI: gọn, dễ bấm, không tràn ngang
+ * ================================================================= */
+.jr-swipe { display: none; }
+@media (max-width: 759px) {
+  /* đầu trang: tờ ghi chú không bị cắt mép */
+  .hero .note-a { left: 3vw; bottom: 30vh; top: auto; rotate: -4deg; }
+  .hero .sticky { width: 112px; font-size: 0.85rem; padding: 10px; }
+
+  /* hành trình: vuốt ngang từng thẻ thay vì cuộn dọc rất dài */
+  .journey { padding: 9vh 0 5vh; }
+  .jr-swipe { display: block; margin: 6px 24px 0; font: 1rem var(--hand); color: var(--ink-soft); }
+  .jr-track { flex-direction: row; align-items: stretch; gap: 16px; padding: 18px 9vw 26px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .jr-track::-webkit-scrollbar { display: none; }
+  .jr-card, .jr-card:nth-child(odd) { width: 78vw; align-self: auto; scroll-snap-align: center; rotate: 0deg; }
+  .jr-card .jr-photo img { max-height: 46vh; object-fit: contain; }
+  .jr-end { flex: none; width: 60vw; scroll-snap-align: center; align-self: center; }
+
+
+  /* dự án: nút "Mở tủ hồ sơ" không đè lên bài */
+  .projects .exam-stack { margin-bottom: 18px; }
+  .projects .exam-all { flex: none; }
+
+  /* các trang con: phần đầu gọn để thấy nội dung sớm hơn */
+  .pg-head { padding: 14px 5vw 22px; }
+  .pg-title { font-size: 2.6rem !important; }
+  .pg-title-row { gap: 12px; }
+  .pg-sub { margin-top: 8px; font-size: 1.1rem; }
+  .pg-d1, .pg-d2, .pg-d3, .pg-tape { display: none; }
+
+  /* góc vui: bài gõ phím không tràn ra ngoài màn hình */
+  .gv { min-width: 0; max-width: 100%; }
+  .tr-top { flex-wrap: wrap; gap: 6px 12px; font-size: 1.05rem; }
+  .tr-words { font-size: 1.1rem; gap: 6px 10px; padding: 10px 12px; min-height: 120px; }
+  .tr-in { width: 100%; min-width: 0; font-size: 1.1rem; }
+  .tr-kb { display: none; }
+}
