@@ -50,14 +50,16 @@ const linkify = (t) => String(t).split(/(https?:\/\/\S+)/g).map((x, k) => (/^htt
 
 function Book({ b, onOpen }) {
   return (
-    <button className={`tv-book ${b.featured ? 'gold' : ''}`} data-n={b.n} style={{ '--c': b.color, '--hh': b.hh + '%', '--ww': b.ww + 'px' }}
-      onClick={(e) => onOpen(b.n, e.currentTarget)} onMouseEnter={() => thock(1.7 + (b.n % 5) * 0.08)} aria-label={`Mở sách: ${b.title}`}>
-      <span className="tv-band t" />
-      <span className="tv-rune">{b.rune}</span>
-      <span className="tv-title">{b.title}</span>
-      <span className="tv-year">{b.year || ''}</span>
-      <span className="tv-band b" />
-      {b.featured && <span className="tv-star">★</span>}
+    <button className="tv-slot" data-n={b.n} style={{ '--c': b.color, '--hh': b.hh + '%', '--ww': b.ww + 'px' }}
+      onClick={(e) => onOpen(b.n, e.currentTarget.firstChild)} onMouseEnter={() => thock(1.7 + (b.n % 5) * 0.08)} aria-label={`Mở sách: ${b.title}`}>
+      <span className={`tv-book ${b.featured ? 'gold' : ''}`}>
+        <span className="tv-band t" />
+        <span className="tv-rune">{b.rune}</span>
+        <span className="tv-title">{b.title}</span>
+        <span className="tv-year">{b.year || ''}</span>
+        <span className="tv-band b" />
+        {b.featured && <span className="tv-star">★</span>}
+      </span>
     </button>
   );
 }
@@ -223,7 +225,7 @@ function OpenBook({ books, at, from, onClose }) {
           <div className="ob-photo" onClick={() => b.img && setZoom(!zoom)}>
             <span className="ob-frame">
               {b.img ? <img src={b.img} alt={b.title} draggable="false" /> : <span className="ob-ph">{b.S.ic}</span>}
-              <span className="ob-corner tl" /><span className="ob-corner tr" /><span className="ob-corner bl" /><span className="ob-corner br" />
+              <span className="ob-corner c-tl" /><span className="ob-corner c-tr" /><span className="ob-corner c-bl" /><span className="ob-corner c-br" />
             </span>
           </div>
           <small className="ob-pno">— {b.n * 2 + 1} —</small>
