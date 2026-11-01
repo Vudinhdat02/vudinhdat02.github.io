@@ -27,3 +27,4 @@ ma truy cap*
 # cong cu tren may (file .bat) — chi dung tren may, khong dua len GitHub
 cong-cu/
 *.bat
+dist-desk

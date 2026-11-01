@@ -7,8 +7,8 @@
  *     GitHub access token. Each save becomes a commit in your repo through the GitHub API,
  *     and GitHub rebuilds the site in 1–2 minutes.
  *
- * Visitors never see any editing tool. Even if someone opened the sign-in box, GitHub only
- * accepts a token that has write access to YOUR repo — the website itself stores no password.
+ * Visitors never see any editing tool. After the first sign-in with the token you can set a
+ * password, then sign in with that password instead (see "password sign-in" below).
  */
 import { useCallback, useEffect, useState } from 'react';
 import { GITHUB } from '../data/site';
@@ -61,6 +61,67 @@ export async function signIn(token, remember) {
 }
 
 export function signOut() { store.clear(); }
+
+/* ---------- password sign-in ----------
+ * GitHub Pages cannot keep a secret on a server, so the password never goes anywhere:
+ * the GitHub token is stored in the repo ENCRYPTED with your password (public/admin-key.json,
+ * PBKDF2-SHA256 600 000 rounds → AES-GCM-256). Signing in = fetch that file, unlock it in the
+ * browser with the password, then check the unlocked token with GitHub as before.
+ * Without the password the file is useless, so pick a long password (10+ characters) that you
+ * don't use anywhere else. Change it or replace an expired token at #admin → "Đặt mật khẩu".
+ */
+const KEY_FILE = 'public/admin-key.json';
+const ITER = 600000;
+const AAD = new TextEncoder().encode(`${GITHUB.owner}/${GITHUB.repo}`);
+const toB64 = (u8) => { let s = ''; u8.forEach((b) => { s += String.fromCharCode(b); }); return btoa(s); };
+const fromB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+
+async function deriveKey(password, salt, iterations) {
+  const raw = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(password).normalize('NFC')), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, raw, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+
+/** The locked token: straight from the repo (fresh), or the copy on the site if GitHub's API is busy. */
+async function loadKeyFile() {
+  try {
+    const r = await fetch(`${repoUrl(KEY_FILE)}?ref=${GITHUB.branch}`, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    if (r.status === 404) return null;
+    if (r.ok) return JSON.parse(b64ToUtf8((await r.json()).content));
+  } catch { /* fall back below */ }
+  try {
+    const r = await fetch(`${import.meta.env.BASE_URL || '/'}admin-key.json`, { cache: 'no-store' });
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+
+export async function hasPassword() { return !!(await loadKeyFile())?.ct; }
+
+export async function signInWithPassword(password, remember) {
+  const f = await loadKeyFile();
+  if (!f?.ct) throw new Error('no-key');
+  let token;
+  try {
+    const key = await deriveKey(password, fromB64(f.salt), f.iter || ITER);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(f.iv), additionalData: AAD }, key, fromB64(f.ct));
+    token = new TextDecoder().decode(plain);
+  } catch { throw new Error('bad-password'); }
+  try { return await signIn(token, remember); } catch (e) {
+    throw new Error(e.message === 'bad-token' ? 'token-expired' : e.message);
+  }
+}
+
+/** Lock a token with a new password and save it in the repo. No token given → the one you are signed in with. */
+export async function setPassword(password, token) {
+  if (String(password).length < 10) throw new Error('short-password');
+  if (token) await signIn(token, true); else token = store.get();
+  if (!token) throw new Error('bad-token');
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt, ITER);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: AAD }, key, new TextEncoder().encode(token)));
+  const file = { v: 1, kdf: 'PBKDF2-SHA256', iter: ITER, cipher: 'AES-GCM-256', salt: toB64(salt), iv: toB64(iv), ct: toB64(ct), at: new Date().toISOString() };
+  await putFile(KEY_FILE, utf8ToB64(JSON.stringify(file, null, 2) + '\n'), 'Đặt mật khẩu quản trị');
+}
 
 /* ---------- GitHub contents API ---------- */
 

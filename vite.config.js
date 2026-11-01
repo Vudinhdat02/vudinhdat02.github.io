@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { codeInspectorPlugin } from 'code-inspector-plugin';
 import adminApi from './vite-plugins/admin-api.js';
 
 // Security rules for the published site (not used by `npm run dev`):
@@ -30,10 +29,6 @@ export default defineConfig({
   // GitHub Pages: set automatically by .github/workflows/deploy.yml ('/' for user.github.io, '/<repo>/' otherwise)
   base: process.env.BASE_PATH || '/',
   plugins: [
-    // Dev only: hold Shift + Alt (Mac: Option + Shift) and hover an element to see its file:line,
-    // click to open that exact line in VS Code. Or use the floating toggle button.
-    // Not included in `npm run build`.
-    codeInspectorPlugin({ bundler: 'vite', editor: 'code', showSwitch: true }),
     react(),
     // Dev only: lets the "+ Add" editors on the page save achievements, skills, images and the CV into this project.
     adminApi(),
@@ -47,7 +42,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           react: ['react', 'react-dom'],
-          motion: ['framer-motion', 'gsap'],
+          motion: ['gsap', 'lenis'],
         },
       },
     },
