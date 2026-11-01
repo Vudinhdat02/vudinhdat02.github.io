@@ -76,6 +76,7 @@ export default function TopBar({ sections, active, onGo, onBrand, onSearch, nigh
           <button className={`tb-tool lamp ${night ? 'off' : ''}`} onClick={onNight} title={night ? 'Bật đèn' : 'Tắt đèn (chế độ tối)'} aria-pressed={night}>
             <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 28h14M11 28l4-11 6-6" /><path className="shade" d="M17 6l9 9-3 2-8-8z" /><circle cx="15" cy="17" r="1.6" /></svg>
           </button>
+          <TextSize />
           <button className="tb-tool" onClick={onMute} title={mute ? 'Bật âm thanh' : 'Tắt âm thanh'}>{mute ? '🔇' : '🔊'}</button>
           {canWrite && <button className="tb-write" onClick={onWrite}>✍ Viết nhật ký</button>}
           <button className="tb-burger" onClick={() => { setOpen(!open); thock(); }} aria-expanded={open} aria-label="Mở mục lục"><i /><i /><i /></button>
@@ -92,5 +93,45 @@ export default function TopBar({ sections, active, onGo, onBrand, onSearch, nigh
         </div>
       )}
     </header>
+  );
+}
+
+/* Cỡ chữ cho người xem: phóng to/thu nhỏ cả trang, nhớ lựa chọn cho lần sau. */
+const SIZES = [0.9, 1, 1.1, 1.2, 1.3];
+const setFs = (z) => { if (z === 1) document.documentElement.style.removeProperty('--fs'); else document.documentElement.style.setProperty('--fs', String(z)); };
+const applySize = (z) => { setFs(z); requestAnimationFrame(() => ScrollTrigger.refresh()); };
+export const initTextSize = () => { try { const z = +localStorage.getItem('desk.zoom'); if (SIZES.includes(z)) setFs(z); } catch { /* bỏ qua */ } };
+initTextSize();
+
+function TextSize() {
+  const [z, setZ] = useState(() => { try { const v = +localStorage.getItem('desk.zoom'); return SIZES.includes(v) ? v : 1; } catch { return 1; } });
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const off = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener('pointerdown', off);
+    return () => document.removeEventListener('pointerdown', off);
+  }, [open]);
+  const set = (v) => { thock(1.3); setZ(v); applySize(v); try { localStorage.setItem('desk.zoom', String(v)); } catch { /* bỏ qua */ } };
+  const i = SIZES.indexOf(z);
+  return (
+    <div className="tz" ref={box}>
+      <button className={`tb-tool tz-btn ${z !== 1 ? 'on' : ''}`} onClick={() => { setOpen(!open); thock(); }} title="Cỡ chữ" aria-label="Cỡ chữ" aria-expanded={open}>
+        <span className="tz-a">A</span><span className="tz-b">A</span>
+      </button>
+      {open && (
+        <div className="tz-pop" role="dialog" aria-label="Chỉnh cỡ chữ">
+          <b>Cỡ chữ</b>
+          <div className="tz-row">
+            <button onClick={() => set(SIZES[Math.max(0, i - 1)])} disabled={i <= 0} aria-label="Chữ nhỏ hơn">A−</button>
+            <span className="tz-val">{Math.round(z * 100)}%</span>
+            <button onClick={() => set(SIZES[Math.min(SIZES.length - 1, i + 1)])} disabled={i >= SIZES.length - 1} aria-label="Chữ to hơn">A+</button>
+          </div>
+          <div className="tz-dots">{SIZES.map((v) => <button key={v} className={v === z ? 'on' : ''} onClick={() => set(v)} aria-label={`${Math.round(v * 100)}%`} />)}</div>
+          {z !== 1 && <button className="tz-reset" onClick={() => set(1)}>Về mặc định</button>}
+        </div>
+      )}
+    </div>
   );
 }

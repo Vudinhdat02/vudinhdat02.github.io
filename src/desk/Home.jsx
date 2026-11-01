@@ -276,7 +276,7 @@ function HomeView({ onNav, onLightbox, data }) {
               </div>
               <div className="crt-glare" />
             </div>
-            <div className="crt-brand"><span>ĐẠT-86</span><i className="crt-led" /></div>
+            <div className="crt-brand"><i className="crt-led" /></div>
           </div>
           <div className="crt-neck" />
         </div>

@@ -7,10 +7,28 @@ import intro from '../../data/intro.json';
 import { asset } from '../../utils/asset';
 import { buzz, thock, whoosh } from '../sound';
 import { vi } from '../Diary';
+import { ListEditor, useEditable } from '../Editor';
+import { GH_MODE, EDIT_MODE, uploadCv } from '../../admin/adminApi';
+
+const CV_FIELDS = [
+  { key: 'name', label: 'Tên mục (vd: Học vấn, Kinh nghiệm)', type: 'text', required: true },
+  { key: 'desc', label: 'Nội dung (mỗi dòng một ý, bắt đầu bằng dấu -)', type: 'area' },
+];
+const CV_BLANK = () => ({ name: '', desc: '- ' });
+const CV_PREVIEW = (x) => ({ title: x.name, sub: (x.desc || '').split('\n')[0] });
 import BrandIcon, { BRAND_COLOR } from '../Brand';
 
 export function CvPage() {
   const ref = useRef(null);
+  const ed = useEditable(intro, 'intro');
+  const [pdf, setPdf] = useState(null);
+  const [pdfMsg, setPdfMsg] = useState('');
+  const pickPdf = async (e) => {
+    const file = e.target.files?.[0]; e.target.value = '';
+    if (!file) return;
+    setPdfMsg('Đang tải lên…');
+    try { const url = await uploadCv(file); if (url) setPdf(url); setPdfMsg('Đã thay CV. Web cập nhật sau khoảng 2 phút.'); } catch (err) { setPdfMsg(err.message || 'Không tải lên được'); }
+  };
   useLayoutEffect(() => {
     const q = gsap.utils.selector(ref);
     const tl = gsap.timeline({ delay: 0.8 });
@@ -30,12 +48,16 @@ export function CvPage() {
           <p className="cv-name">VŨ ĐÌNH ĐẠT</p>
           <p className="cv-role">{profile.role.vi} · {vi(profile.location)}</p>
           <hr />
-          {intro.map((x) => <div key={x.id} className="cv-block"><b>{x.name.toUpperCase()}</b><pre>{x.desc}</pre></div>)}
+          {ed.items.map((x) => <div key={x.id} className="cv-block"><b>{x.name.toUpperCase()}</b><pre>{x.desc}</pre></div>)}
           <div className="cv-block"><b>KỸ NĂNG</b><pre>{skills.map((s) => `- ${s.name}: ${s.desc}`).join('\n')}</pre></div>
           <div className="cv-block"><b>LIÊN HỆ</b><pre>{`- Email: ${profile.email}\n- GitHub: github.com/Vudinhdat02`}</pre></div>
-          <a className="cv-btn" href={asset('/cv.pdf')} target="_blank" rel="noreferrer">Mở CV đầy đủ (PDF)</a>
+          <a className="cv-btn" href={pdf || asset('/cv.pdf')} target="_blank" rel="noreferrer">Mở CV đầy đủ (PDF)</a>
+          {EDIT_MODE && (GH_MODE || import.meta.env.DEV) && (
+            <label className="cv-pdf-up">📄 Thay file CV (PDF)<input type="file" accept="application/pdf,.pdf" onChange={pickPdf} hidden />{pdfMsg && <small>{pdfMsg}</small>}</label>
+          )}
         </div>
       </div>
+      {ed.canEdit && <ListEditor ed={ed} label="mục CV" fields={CV_FIELDS} blank={CV_BLANK} preview={CV_PREVIEW} />}
     </div>
   );
 }

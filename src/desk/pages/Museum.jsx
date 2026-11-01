@@ -46,6 +46,8 @@ function buildBooks(list) {
 }
 
 /* ---------- một cuốn sách trên kệ ---------- */
+const linkify = (t) => String(t).split(/(https?:\/\/\S+)/g).map((x, k) => (/^https?:\/\//.test(x) ? <a key={k} href={x} target="_blank" rel="noreferrer">{x}</a> : x));
+
 function Book({ b, onOpen }) {
   return (
     <button className={`tv-book ${b.featured ? 'gold' : ''}`} data-n={b.n} style={{ '--c': b.color, '--hh': b.hh + '%', '--ww': b.ww + 'px' }}
@@ -121,7 +123,7 @@ function Library({ books, onOpen }) {
       <header className="tv-top">
         <div className="tv-head">
           <span className="tv-emb">✦</span>
-          <div><h1>Thư viện thành tích</h1><p>{books.length} cuốn sách phép · mỗi cuốn là một dấu mốc. Bấm vào gáy sách để mở.</p></div>
+          <div><h1>Thư viện thành tích</h1></div>
         </div>
         <nav className="tv-tabs" aria-label="Chọn kệ sách">
           <button className={tab === 'all' ? 'on' : ''} onClick={() => { setTab('all'); thock(1.3); }}>📚 Tất cả <b>{books.length}</b></button>
@@ -219,8 +221,10 @@ function OpenBook({ books, at, from, onClose }) {
       <div className="ob-book">
         <div className="ob-page l">
           <div className="ob-photo" onClick={() => b.img && setZoom(!zoom)}>
-            {b.img ? <img src={b.img} alt={b.title} draggable="false" /> : <span className="ob-ph">{b.S.ic}</span>}
-            <span className="ob-corner tl" /><span className="ob-corner tr" /><span className="ob-corner bl" /><span className="ob-corner br" />
+            <span className="ob-frame">
+              {b.img ? <img src={b.img} alt={b.title} draggable="false" /> : <span className="ob-ph">{b.S.ic}</span>}
+              <span className="ob-corner tl" /><span className="ob-corner tr" /><span className="ob-corner bl" /><span className="ob-corner br" />
+            </span>
           </div>
           <small className="ob-pno">— {b.n * 2 + 1} —</small>
         </div>
@@ -228,7 +232,7 @@ function OpenBook({ books, at, from, onClose }) {
           <span className="ob-chap">Chương {b.n + 1} · {b.S.name}</span>
           <h2>{b.title}</h2>
           <span className="ob-date">🗓 {b.date}</span>
-          <p className="ob-story">{b.desc || 'Một trang ghi dấu cố gắng, được cất giữ trong thư viện này.'}</p>
+          <p className="ob-story">{linkify(b.desc || 'Một trang ghi dấu cố gắng, được cất giữ trong thư viện này.')}</p>
           {b.featured && <span className="ob-seal">★<small>tiêu biểu</small></span>}
           <span className="ob-rune">{b.rune}</span>
           <small className="ob-pno">— {b.n * 2 + 2} —</small>
