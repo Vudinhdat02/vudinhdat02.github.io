@@ -213,3 +213,16 @@
 :root { --serif: var(--hand); }
 .tv-head h1 { font-weight: 400; }
 .tv-crown, .ob-cover-in b, .ob-page.r h2, .ob-pno, .tv-title { font-style: normal; font-weight: 400; }
+
+/* trang chủ, mục Dự án: tiêu đề ở trên, bài kiểm tra chiếm phần còn lại, không bao giờ đè lên nhau */
+@media (min-width: 760px) {
+  .projects { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto minmax(0, 1fr); column-gap: 24px; min-height: 0; padding: calc(var(--tbh, 84px) + 22px) 6vw 3vh; }
+  .projects .sec-title { grid-column: 1; grid-row: 1 / 3; align-self: center; margin: 0; }
+  .projects .exam-count { grid-column: 2; grid-row: 1; position: static; justify-self: end; align-self: end; margin: 0; }
+  .projects .exam-all { grid-column: 2; grid-row: 2; position: static; justify-self: end; align-self: start; margin: 6px 0 0; white-space: nowrap; }
+  .projects .exam-stack { grid-column: 1 / -1; grid-row: 3; position: relative; left: auto; top: auto; translate: none; justify-self: center; width: min(780px, 84vw); height: 100%; max-height: 660px; min-height: 0; margin: 20px 0 0; }
+  .projects .exam-q { margin-top: 26px; }
+}
+@media (min-width: 760px) and (max-width: 1100px) {
+  .projects .exam-all { padding: 10px 16px; font-size: 1.1rem; }
+}
