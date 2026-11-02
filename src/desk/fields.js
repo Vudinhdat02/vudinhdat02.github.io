@@ -15,11 +15,27 @@ export const ACH_FIELDS = [
   { key: 'title', label: 'Tên thành tích', type: 'text', required: true },
   { key: 'date', label: 'Thời gian (vd: 2024 - 2025 hoặc 06/2026)', type: 'text', required: true },
   { key: 'category', label: 'Loại (mỗi loại là một phòng)', type: 'text', options: ['Học tập', 'Hoạt động', 'Cuộc thi'] },
-  { key: 'featured', label: 'Tiêu biểu (khung vàng, hiện ở mục Hành trình trang chủ)', type: 'check' },
+  { key: 'featured', label: 'Tiêu biểu (đeo huy chương trên tường, hiện ở mục Hành trình trang chủ)', type: 'check' },
   { key: 'desc', label: 'Mô tả ngắn', type: 'area' },
   { key: 'image', label: 'Ảnh giấy khen / huy chương', type: 'image' },
+  { key: 'frame', label: 'Kiểu khung treo trên tường', type: 'frame' },
 ];
-export const ACH_BLANK = () => ({ title: '', date: String(new Date().getFullYear()), category: 'Học tập', featured: false, desc: '', image: '' });
+/* 10 kiểu khung treo cho bức tường thành tích */
+export const FRAMES = [
+  { key: 'gold', name: 'Vàng chạm' },
+  { key: 'noir', name: 'Đen viền vàng' },
+  { key: 'oak', name: 'Gỗ sồi' },
+  { key: 'walnut', name: 'Gỗ óc chó' },
+  { key: 'silver', name: 'Bạc' },
+  { key: 'gallery', name: 'Trắng triển lãm' },
+  { key: 'rose', name: 'Vàng hồng' },
+  { key: 'mahogany', name: 'Gỗ gụ viền vàng' },
+  { key: 'modern', name: 'Đen mảnh' },
+  { key: 'velvet', name: 'Hộp nhung xanh' },
+];
+const hashOf = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
+export const frameOf = (a) => (FRAMES.some((f) => f.key === a.frame) ? a.frame : FRAMES[hashOf(a.id || a.title) % FRAMES.length].key);
+export const ACH_BLANK = () => ({ title: '', date: String(new Date().getFullYear()), category: 'Học tập', featured: false, desc: '', image: '', frame: 'gold' });
 export const ACH_PREVIEW = (a) => ({ img: a.image ? asset(a.image) : null, title: a.title, sub: `${a.category} · ${a.date}${a.featured ? ' · ★' : ''}` });
 
 export const PROJ_FIELDS = [

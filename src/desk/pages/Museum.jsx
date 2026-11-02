@@ -1,22 +1,25 @@
 /*
- * Trang "Thành tích": THƯ VIỆN PHÉP THUẬT.
- *  - Mỗi thành tích là một cuốn sách trên kệ gỗ (gáy sách có tên, năm, ký hiệu công nghệ phát sáng).
- *    Nhiều thành tích vẫn gọn: sách xếp sát nhau trên nhiều tầng kệ, lọc theo từng kệ.
- *  - Rê chuột: sách nhô ra, bụi phép lấp lánh. Bấm: sách bay ra giữa, bìa mở, trang hiện ảnh giấy khen
- *    và lời kể; lật trang qua lại bằng nút, phím ← → hoặc vuốt.
+ * Trang "Thành tích": BỨC TƯỜNG VINH DANH.
+ *  - Mỗi thành tích là một khung ảnh treo bằng dây trên đinh, xếp so le kiểu phòng tranh, cuộn dọc để xem tiếp.
+ *  - 10 kiểu khung (chọn khi thêm/sửa thành tích). Khung đung đưa khi cuộn tới.
+ *  - Rê chuột: đèn rọi sáng lên, kính loé, khung nghiêng theo chuột, kim tuyến bay, biển tên trượt ra.
+ *  - Bấm: khung bay ra giữa phòng, xem ảnh lớn và câu chuyện, chuyển qua lại bằng nút, phím ← → hoặc vuốt.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import data from '../../data/achievements.json';
 import { asset } from '../../utils/asset';
 import { thock, whoosh, chime } from '../sound';
 import { reduced } from '../Fx';
 import { ListEditor, useEditable } from '../Editor';
 import { useDiary } from '../Diary';
-import { ACH_BLANK, ACH_FIELDS, ACH_PREVIEW } from '../fields';
+import { ACH_BLANK, ACH_FIELDS, ACH_PREVIEW, FRAMES, frameOf } from '../fields';
 
-/* tỉ lệ ảnh có sẵn */
+gsap.registerPlugin(ScrollTrigger);
+
+/* tỉ lệ ảnh có sẵn (để giữ chỗ trước khi ảnh tải xong) */
 const AR = {
   '/uploads/tot-nghiep-trung-cap-mums91zd.jpg': 1.299, '/uploads/sinh-vien-xuat-sac-mumsbc7t.jpg': 1.394, '/uploads/sinh-vien-xuat-sac-mumsdspk.jpg': 1.437,
   '/uploads/sinh-vien-5-tot-cap-truong-2023-2024-mumsfx46.jpg': 0.769, '/uploads/sinh-vien-xuat-sac-mumshfn7.jpg': 1.415, '/uploads/sinh-vien-tieu-bieu-mumsjhua.jpg': 1.4,
@@ -25,232 +28,269 @@ const AR = {
   '/uploads/do-an-he-cu-nhan-dat-diem-cao-nhat-hoi-d-mumt4bwf.jpg': 0.75, '/uploads/bai-bao-nckh-dang-tren-tap-chi-kh-cn-dht-mumt6h8q.jpg': 0.594,
   '/uploads/giai-nhi-cuoc-thi-phat-trien-phan-mem-ng-mumt7u9l.jpg': 0.75,
 };
+const IC = { 'Học tập': '🎓', 'Hoạt động': '🤝', 'Cuộc thi': '🏆' };
 const yearOf = (d) => { const m = String(d).match(/(\d{4})/g); return m ? +m[m.length - 1] : 0; };
-const SHELF = {
-  'Học tập': { ic: '📘', rune: '∑', hues: ['#2c4f8f', '#1f3a6e', '#3d64a8', '#24467d', '#4a5fa0'], name: 'Kệ Học tập', tag: 'bùa chú của giảng đường' },
-  'Hoạt động': { ic: '🌿', rune: '⚡', hues: ['#2f6b4f', '#24563f', '#3f7d5c', '#1f4a37', '#4c8a63'], name: 'Kệ Hoạt động', tag: 'những chuyến phiêu lưu cùng bạn bè' },
-  'Cuộc thi': { ic: '🏆', rune: '</>', hues: ['#8a2f3b', '#6e2430', '#a13d45', '#5c1f2b', '#93403a'], name: 'Kệ Cuộc thi', tag: 'chiến tích nơi đấu trường' },
-};
-const OTHER = { ic: '✨', rune: '◇', hues: ['#5a4a8a', '#463a70', '#6b5aa0'], name: 'Kệ khác', tag: 'những dấu mốc khác' };
-const RUNES = ['∑', '⚡', '</>', 'λ', '∞', 'π', '◇', '⌘', '#', '01'];
-const DECOR = ['🦉', '🔮', '🕯️', '🎓', '🤖', '🌐', '⏳', '🧪'];
-const hashOf = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
+const linkify = (t) => String(t).split(/(https?:\/\/\S+)/g).map((x, k) => (/^https?:\/\//.test(x) ? <a key={k} href={x} target="_blank" rel="noreferrer">{x}</a> : x));
+const frameName = (k) => FRAMES.find((f) => f.key === k)?.name || '';
 
-function buildBooks(list) {
-  const items = list.map((a) => ({ ...a, year: yearOf(a.date), img: a.image ? asset(a.image) : null, ar: AR[a.image] || 1.33 }))
-    .sort((a, b) => a.year - b.year);
-  return items.map((a, n) => {
-    const S = SHELF[a.category] || OTHER; const h = hashOf(a.id || a.title);
-    return { ...a, n, S, color: S.hues[h % S.hues.length], rune: RUNES[h % RUNES.length], hh: 78 + (h % 23), ww: 44 + ((h >> 3) % 14) };
-  });
+function build(list) {
+  return list.map((a) => ({ ...a, year: yearOf(a.date), img: a.image ? asset(a.image) : null, ar: AR[a.image] || 1.33, fr: frameOf(a) }))
+    .sort((a, b) => b.year - a.year || (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
+    .map((a, n) => ({ ...a, n }));
 }
 
-/* ---------- một cuốn sách trên kệ ---------- */
-const linkify = (t) => String(t).split(/(https?:\/\/\S+)/g).map((x, k) => (/^https?:\/\//.test(x) ? <a key={k} href={x} target="_blank" rel="noreferrer">{x}</a> : x));
-
-function Book({ b, onOpen }) {
+/* phần khung + ảnh, dùng chung cho tường và khung phóng to */
+function Framed({ a, big }) {
   return (
-    <button className="tv-slot" data-n={b.n} style={{ '--c': b.color, '--hh': b.hh + '%', '--ww': b.ww + 'px' }}
-      onClick={(e) => onOpen(b.n, e.currentTarget.firstChild)} onMouseEnter={() => thock(1.7 + (b.n % 5) * 0.08)} aria-label={`Mở sách: ${b.title}`}>
-      <span className={`tv-book ${b.featured ? 'gold' : ''}`}>
-        <span className="tv-band t" />
-        <span className="tv-rune">{b.rune}</span>
-        <span className="tv-title">{b.title}</span>
-        <span className="tv-year">{b.year || ''}</span>
-        <span className="tv-band b" />
-        {b.featured && <span className="tv-star">★</span>}
+    <span className={`hw-mould hw-f-${a.fr}`}>
+      <span className="hw-mat">
+        {a.img ? <img src={a.img} alt={a.title} loading={big ? 'eager' : 'lazy'} draggable="false" style={{ aspectRatio: `auto ${a.ar}` }} />
+          : <span className="hw-ph" style={{ aspectRatio: '4 / 3' }}>{IC[a.category] || '✦'}<small>{a.title}</small></span>}
       </span>
-    </button>
+    </span>
   );
 }
 
-/* ---------- cả thư viện ---------- */
-function Library({ books, onOpen }) {
-  const root = useRef(null);
-  const [tab, setTab] = useState('all');
-  const [perRow, setPerRow] = useState(14);
-  const cats = [...new Set(books.map((b) => b.category))];
-  const shown = tab === 'all' ? books : tab === 'gold' ? books.filter((b) => b.featured) : books.filter((b) => b.category === tab);
+/* huy chương đeo trên khung tiêu biểu */
+const Medal = () => (
+  <span className="hw-medal" aria-hidden="true">
+    <i className="l" /><i className="r" />
+    <b>★</b>
+  </span>
+);
 
-  /* đo chiều rộng tủ để biết mỗi tầng chứa mấy cuốn */
-  useLayoutEffect(() => {
-    const el = root.current.querySelector('.tv-case');
-    const fit = () => { const w = el.clientWidth - 40; setPerRow(Math.max(5, Math.floor(w / (window.innerWidth < 760 ? 38 : 62)) - 1)); };
-    fit(); const ro = new ResizeObserver(fit); ro.observe(el); return () => ro.disconnect();
-  }, []);
-  const rows = [];
-  for (let i = 0; i < shown.length; i += perRow) rows.push(shown.slice(i, i + perRow));
-  while (rows.length < 3) rows.push([]);
-
-  /* sách rơi xuống kệ mỗi lần đổi kệ */
-  useLayoutEffect(() => {
-    if (reduced()) return undefined;
-    const ctx = gsap.context(() => {
-      gsap.from('.tv-book', { y: -70, rotate: () => gsap.utils.random(-25, 25), opacity: 0, duration: 0.7, ease: 'back.out(1.6)', stagger: { each: 0.035, from: 'random' }, clearProps: 'transform,opacity' });
-      gsap.from('.tv-deco', { scale: 0, opacity: 0, duration: 0.6, delay: 0.4, ease: 'back.out(2)', stagger: 0.08, clearProps: 'transform,opacity' });
-    }, root);
-    return () => ctx.revert();
-  }, [tab, perRow]);
-
-  /* mở màn một lần: tủ sách trượt lên, đường mạch phép sáng dần */
-  useLayoutEffect(() => {
-    if (reduced()) return undefined;
-    const ctx = gsap.context(() => {
-      gsap.from('.tv-case', { y: 60, opacity: 0, duration: 0.9, ease: 'power3.out' });
-      gsap.from('.tv-top > *', { y: -20, opacity: 0, duration: 0.6, stagger: 0.06, ease: 'power3.out' });
-      gsap.fromTo('.tv-circuit path', { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 2.6, ease: 'power2.inOut', stagger: 0.15 });
-    }, root);
-    return () => ctx.revert();
-  }, []);
-
-  /* bụi phép theo chuột trên tủ sách */
-  const lastDust = useRef(0);
-  const dust = (e) => {
-    const now = performance.now(); if (now - lastDust.current < 45 || reduced()) return; lastDust.current = now;
-    const host = root.current.querySelector('.tv-dust'); const r = host.getBoundingClientRect();
-    const d = document.createElement('i'); d.style.left = `${e.clientX - r.left}px`; d.style.top = `${e.clientY - r.top}px`;
-    d.style.setProperty('--dx', `${gsap.utils.random(-30, 30)}px`); d.style.setProperty('--dy', `${gsap.utils.random(-50, -10)}px`);
-    host.appendChild(d); setTimeout(() => d.remove(), 900);
+/* ---------- một khung trên tường ---------- */
+function Piece({ a, onOpen }) {
+  const last = useRef(0);
+  const move = (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const el = e.currentTarget, r = el.querySelector('.hw-frame').getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    el.style.setProperty('--ry', `${(x - 0.5) * 14}deg`);
+    el.style.setProperty('--rx', `${(0.5 - y) * 10}deg`);
+    el.style.setProperty('--gx', `${x * 100}%`);
+    el.style.setProperty('--gy', `${y * 100}%`);
   };
-
+  const enter = (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const now = performance.now(); if (now - last.current < 500) return; last.current = now;
+    thock(1.9 + (a.n % 4) * 0.07);
+    if (reduced()) return;
+    const el = e.currentTarget;
+    gsap.fromTo(el.querySelector('.hw-hang'), { rotate: e.movementX > 0 ? 2.2 : -2.2 }, { rotate: 0, duration: 1.6, ease: 'elastic.out(1.1, 0.25)', overwrite: true });
+    const host = el.querySelector('.hw-spark'); const w = host.offsetWidth, h = host.offsetHeight;
+    for (let k = 0; k < 9; k++) {
+      const s = document.createElement('i'); s.textContent = k % 3 ? '✦' : '✧'; host.appendChild(s);
+      const side = k % 4, t = Math.random();
+      const x = side === 0 ? t * w : side === 1 ? w : side === 2 ? t * w : 0;
+      const y = side === 0 ? 0 : side === 1 ? t * h : side === 2 ? h : t * h;
+      gsap.fromTo(s, { x, y, scale: 0, opacity: 1, rotate: 0 }, { x: x + gsap.utils.random(-26, 26), y: y - gsap.utils.random(20, 60), scale: gsap.utils.random(0.6, 1.3), rotate: 160, opacity: 0, duration: gsap.utils.random(0.8, 1.3), ease: 'power2.out', delay: k * 0.03, onComplete: () => s.remove() });
+    }
+  };
+  const leave = (e) => { const el = e.currentTarget; el.style.setProperty('--rx', '0deg'); el.style.setProperty('--ry', '0deg'); };
   return (
-    <div className="tv" ref={root}>
-      <div className="tv-sky" aria-hidden="true">{Array.from({ length: 22 }, (_, i) => <i key={i} style={{ '--x': `${(i * 37) % 100}%`, '--y': `${(i * 53) % 60}%`, '--d': `${(i % 7) * 0.6}s` }} />)}</div>
-      <svg className="tv-circuit" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
-        <path pathLength="1" d="M0 60 H180 L220 100 H420 L450 70 H640" /><path pathLength="1" d="M1200 40 H1010 L970 80 H780 L740 50 H600" />
-        <path pathLength="1" d="M0 220 H120 L160 180 H300" /><path pathLength="1" d="M1200 230 H1060 L1020 190 H900" />
-      </svg>
-      <div className="tv-flies" aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ '--x': `${(i * 71) % 100}%`, '--y': `${20 + ((i * 29) % 70)}%`, '--t': `${7 + (i % 5) * 1.7}s`, '--d': `-${i * 1.3}s` }} />)}</div>
-
-      <header className="tv-top">
-        <div className="tv-head">
-          <span className="tv-emb">✦</span>
-          <div><h1>Thư viện thành tích</h1></div>
+    <div className={`hw-slot ${a.featured ? 'star' : ''}`} onPointerMove={move} onPointerEnter={enter} onPointerLeave={leave}>
+      <span className="hw-beam" aria-hidden="true" />
+      <div className="hw-hang">
+        <svg className="hw-wire" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><path d="M4 30 L50 3 L96 30" /></svg>
+        <span className="hw-nail" aria-hidden="true" />
+        <button className="hw-frame" onClick={(e) => onOpen(a.n, e.currentTarget.querySelector('.hw-mould'))} aria-label={`Xem chi tiết: ${a.title}`}>
+          <Framed a={a} />
+          <span className="hw-glare" aria-hidden="true" />
+          {a.featured && <Medal />}
+        </button>
+        <div className="hw-plate">
+          <b>{a.title}</b>
+          <small>{a.date}</small>
+          <span className="hw-more">{IC[a.category] || '✦'} {a.category} · Bấm để xem chi tiết</span>
         </div>
-        <nav className="tv-tabs" aria-label="Chọn kệ sách">
-          <button className={tab === 'all' ? 'on' : ''} onClick={() => { setTab('all'); thock(1.3); }}>📚 Tất cả <b>{books.length}</b></button>
-          {cats.map((c) => { const S = SHELF[c] || OTHER; return <button key={c} className={tab === c ? 'on' : ''} onClick={() => { setTab(c); thock(1.3); }}>{S.ic} {c} <b>{books.filter((b) => b.category === c).length}</b></button>; })}
-          <button className={tab === 'gold' ? 'on' : ''} onClick={() => { setTab('gold'); thock(1.3); }}>★ Tiêu biểu <b>{books.filter((b) => b.featured).length}</b></button>
-        </nav>
-      </header>
-
-      <div className="tv-case" onPointerMove={dust}>
-        <span className="tv-crown" aria-hidden="true"><i>✦</i> {tab === 'all' ? 'Toàn bộ thư viện' : tab === 'gold' ? 'Những cuốn sách vàng' : (SHELF[tab] || OTHER).tag} <i>✦</i></span>
-        {rows.map((row, r) => (
-          <div className="tv-shelf" key={`${tab}-${r}`}>
-            {row.map((b) => <Book key={b.id || b.n} b={b} onOpen={onOpen} />)}
-            {row.length < perRow - 1 && <span className="tv-deco" style={{ '--r': `${(r * 7) % 9 - 4}deg` }}>{DECOR[(r + (tab.length || 0)) % DECOR.length]}</span>}
-          </div>
-        ))}
-        <div className="tv-dust" aria-hidden="true" />
       </div>
+      <span className="hw-spark" aria-hidden="true" />
     </div>
   );
 }
 
-/* ---------- sách mở ra ---------- */
-function OpenBook({ books, at, from, onClose }) {
+/* ---------- cả bức tường ---------- */
+function Wall({ items, onOpen }) {
+  const root = useRef(null);
+  const [tab, setTab] = useState('all');
+  const [cols, setCols] = useState(4);
+  const cats = [...new Set(items.map((a) => a.category).filter(Boolean))];
+  const shown = tab === 'all' ? items : tab === 'gold' ? items.filter((a) => a.featured) : items.filter((a) => a.category === tab);
+
+  useLayoutEffect(() => {
+    const fit = () => { const w = root.current.clientWidth; setCols(w >= 1100 ? 4 : w >= 720 ? 3 : 2); };
+    fit(); const ro = new ResizeObserver(fit); ro.observe(root.current); return () => ro.disconnect();
+  }, []);
+
+  /* xếp so le: mỗi khung vào cột đang thấp nhất */
+  const columns = useMemo(() => {
+    const out = Array.from({ length: cols }, () => ({ h: 0, list: [] }));
+    shown.forEach((a) => { const c = out.reduce((m, x) => (x.h < m.h ? x : m), out[0]); c.list.push(a); c.h += 1 / a.ar + 0.45; });
+    return out.map((c) => c.list);
+  }, [shown, cols]);
+
+  /* mở màn một lần */
+  useLayoutEffect(() => {
+    if (reduced()) return undefined;
+    const ctx = gsap.context(() => {
+      gsap.from('.hw-crest > *', { y: -24, opacity: 0, duration: 0.7, stagger: 0.08, ease: 'back.out(1.8)' });
+      gsap.fromTo('.hw-laurel path', { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.6, ease: 'power2.inOut', delay: 0.3 });
+      gsap.from('.hw-tabs button', { y: 18, opacity: 0, duration: 0.5, stagger: 0.06, ease: 'back.out(2)', delay: 0.35 });
+      gsap.from('.hw-crown', { scaleX: 0, duration: 1.1, ease: 'power3.inOut' });
+    }, root);
+    return () => ctx.revert();
+  }, []);
+
+  /* khung treo đung đưa khi cuộn tới */
+  useLayoutEffect(() => {
+    if (reduced()) return undefined;
+    const ctx = gsap.context(() => {
+      const hangs = gsap.utils.toArray('.hw-hang');
+      gsap.set(hangs, { opacity: 0, y: -50, rotate: (k) => (k % 2 ? 9 : -9), transformOrigin: '50% 0%' });
+      ScrollTrigger.batch(hangs, {
+        start: 'top 94%', once: true,
+        onEnter: (b) => gsap.to(b, { opacity: 1, y: 0, rotate: 0, duration: 1.8, ease: 'elastic.out(1, 0.32)', stagger: 0.09, overwrite: true }),
+      });
+      ScrollTrigger.refresh();
+    }, root);
+    return () => ctx.revert();
+  }, [tab, cols, items]);
+
+  const pick = (t) => { if (t !== tab) { setTab(t); thock(1.3); } };
+  return (
+    <div className="hw" ref={root}>
+      <span className="hw-crown" aria-hidden="true" />
+      <header className="hw-top">
+        <div className="hw-crest">
+          <svg className="hw-laurel" viewBox="0 0 220 70" aria-hidden="true">
+            <path pathLength="1" d="M104 64 C 60 60, 30 40, 22 8" /><path pathLength="1" d="M116 64 C 160 60, 190 40, 198 8" />
+            {[0, 1, 2, 3, 4].map((k) => <g key={k}><ellipse cx={30 + k * 15} cy={18 + k * 9} rx="8" ry="3.4" transform={`rotate(${-50 + k * 9} ${30 + k * 15} ${18 + k * 9})`} /><ellipse cx={190 - k * 15} cy={18 + k * 9} rx="8" ry="3.4" transform={`rotate(${50 - k * 9} ${190 - k * 15} ${18 + k * 9})`} /></g>)}
+          </svg>
+          <h1>Bức tường vinh danh</h1>
+          <p>Mỗi khung là một lần cố gắng được ghi nhận</p>
+        </div>
+        <nav className="hw-tabs" aria-label="Lọc thành tích">
+          <button className={tab === 'all' ? 'on' : ''} onClick={() => pick('all')}>Tất cả <b>{items.length}</b></button>
+          {cats.map((c) => <button key={c} className={tab === c ? 'on' : ''} onClick={() => pick(c)}>{IC[c] || '✦'} {c} <b>{items.filter((a) => a.category === c).length}</b></button>)}
+          <button className={tab === 'gold' ? 'on' : ''} onClick={() => pick('gold')}>★ Tiêu biểu <b>{items.filter((a) => a.featured).length}</b></button>
+        </nav>
+      </header>
+      <div className="hw-cols" key={tab} style={{ '--cols': cols }}>
+        {columns.map((col, c) => (
+          <div className="hw-col" key={c}>{col.map((a) => <Piece key={a.id || a.n} a={a} onOpen={onOpen} />)}</div>
+        ))}
+      </div>
+      {shown.length === 0 && <p className="hw-empty">Chưa có thành tích nào ở mục này.</p>}
+      <div className="hw-wains" aria-hidden="true"><i /><i /><i /><i /></div>
+    </div>
+  );
+}
+
+/* ---------- xem chi tiết một thành tích ---------- */
+function Detail({ items, at, from, onClose }) {
   const ref = useRef(null);
   const [i, setI] = useState(at);
-  const [talk, setTalk] = useState(false);
   const [zoom, setZoom] = useState(false);
+  const [talk, setTalk] = useState(false);
   const busy = useRef(false);
-  const b = books[i];
+  const a = items[i];
   const { lenis } = useDiary() || {};
 
   useEffect(() => { lenis?.current?.stop(); return () => { lenis?.current?.start(); window.speechSynthesis?.cancel(); }; }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const burst = () => {
-    const host = ref.current?.querySelector('.ob-burst'); if (!host || reduced()) return;
-    for (let k = 0; k < 18; k++) {
-      const s = document.createElement('i'); s.textContent = ['✦', '✧', '⋆', '✶'][k % 4]; host.appendChild(s);
-      const a = (k / 18) * Math.PI * 2, d = 120 + Math.random() * 160;
-      gsap.fromTo(s, { x: 0, y: 0, scale: 0.4, opacity: 1 }, { x: Math.cos(a) * d, y: Math.sin(a) * d, scale: 1.2, opacity: 0, rotate: 180, duration: 1.1 + Math.random() * 0.5, ease: 'power3.out', onComplete: () => s.remove() });
+  const confetti = () => {
+    const host = ref.current?.querySelector('.hd-burst'); if (!host || reduced()) return;
+    const cs = ['#e9c766', '#fff2b8', '#d33a2c', '#1f2f6e', '#b88a2a'];
+    for (let k = 0; k < 26; k++) {
+      const s = document.createElement('i'); s.style.background = cs[k % cs.length]; host.appendChild(s);
+      const ang = (k / 26) * Math.PI * 2, d = 140 + Math.random() * 220;
+      gsap.fromTo(s, { x: 0, y: 0, rotate: 0, opacity: 1 }, { x: Math.cos(ang) * d, y: Math.sin(ang) * d + 120, rotate: gsap.utils.random(-540, 540), opacity: 0, duration: 1.4 + Math.random() * 0.6, ease: 'power3.out', onComplete: () => s.remove() });
     }
   };
 
   useLayoutEffect(() => {
     const q = gsap.utils.selector(ref);
     whoosh();
-    gsap.fromTo(q('.ob-bg'), { opacity: 0 }, { opacity: 1, duration: 0.4 });
+    gsap.fromTo(q('.hd-bg'), { opacity: 0 }, { opacity: 1, duration: 0.45 });
     if (reduced()) return;
-    const book = q('.ob-book')[0]; const r = book.getBoundingClientRect();
+    const big = q('.hd-art .hw-mould')[0]; const r = big.getBoundingClientRect();
     const tl = gsap.timeline();
-    if (from) tl.from(book, { x: from.left + from.width / 2 - (r.left + r.width / 2), y: from.top + from.height / 2 - (r.top + r.height / 2), scale: Math.max(0.08, from.height / r.height), rotateY: -70, duration: 0.75, ease: 'power3.out' });
-    tl.fromTo(q('.ob-cover'), { rotateY: 0 }, { rotateY: -178, duration: 0.95, ease: 'power2.inOut', onStart: () => chime(true), onComplete: burst }, from ? '-=0.1' : 0)
-      .set(q('.ob-cover'), { autoAlpha: 0 })
-      .from(q('.ob-page.r > *'), { y: 16, opacity: 0, stagger: 0.06, duration: 0.45, ease: 'power3.out' }, '-=0.35')
-      .from(q('.ob-ui > *'), { y: 20, opacity: 0, stagger: 0.05, duration: 0.4, ease: 'power3.out' }, '<');
+    tl.fromTo(q('.hd-light'), { opacity: 0, scaleY: 0.3 }, { opacity: 1, scaleY: 1, duration: 0.8, ease: 'power2.out' }, 0);
+    if (from) {
+      tl.from(q('.hd-art'), {
+        x: from.left + from.width / 2 - (r.left + r.width / 2), y: from.top + from.height / 2 - (r.top + r.height / 2),
+        scale: Math.max(0.1, from.width / r.width), rotate: -4, duration: 0.75, ease: 'power3.inOut',
+      }, 0);
+    }
+    tl.add(() => { chime(true); if (a.featured) confetti(); }, 0.6)
+      .from(q('.hd-info > *'), { x: 30, opacity: 0, stagger: 0.07, duration: 0.5, ease: 'power3.out' }, 0.45)
+      .from(q('.hd-ui > *'), { y: 20, opacity: 0, stagger: 0.05, duration: 0.4, ease: 'power3.out' }, 0.6);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* lật trang: một tờ giấy quay qua gáy, nội dung đổi ở giữa chừng */
   const go = (to) => {
-    if (busy.current) return;
-    const n = (to + books.length) % books.length; if (n === i) return;
-    const d = to > i ? 1 : -1; busy.current = true; window.speechSynthesis?.cancel(); setTalk(false); setZoom(false); thock(1.1);
+    if (busy.current || items.length < 2) return;
+    const n = (to + items.length) % items.length; const d = to > i ? 1 : -1;
+    busy.current = true; setZoom(false); setTalk(false); window.speechSynthesis?.cancel(); thock(1.2);
     if (reduced()) { setI(n); busy.current = false; return; }
-    const leaf = ref.current.querySelector('.ob-leaf');
+    const q = gsap.utils.selector(ref);
     gsap.timeline({ onComplete: () => { busy.current = false; } })
-      .set(leaf, { autoAlpha: 1, rotateY: d > 0 ? 0 : -180, transformOrigin: '0% 50%' })
-      .to(leaf, { rotateY: d > 0 ? -180 : 0, duration: 0.7, ease: 'power2.inOut' })
-      .add(() => setI(n), 0.33)
-      .set(leaf, { autoAlpha: 0 });
+      .to(q('.hd-art'), { x: -120 * d, rotate: -6 * d, opacity: 0, duration: 0.3, ease: 'power2.in' })
+      .to(q('.hd-info'), { opacity: 0, x: -30 * d, duration: 0.25 }, 0)
+      .add(() => setI(n))
+      .fromTo(q('.hd-art'), { x: 120 * d, rotate: 6 * d, opacity: 0 }, { x: 0, rotate: 0, opacity: 1, duration: 0.7, ease: 'elastic.out(1, 0.55)' }, '+=0.02')
+      .fromTo(q('.hd-info'), { opacity: 0, x: 30 * d }, { opacity: 1, x: 0, duration: 0.4, ease: 'power3.out' }, '<0.1');
   };
   const close = () => {
     const q = gsap.utils.selector(ref);
-    gsap.to(q('.ob-book'), { scale: 0.85, y: 40, opacity: 0, duration: 0.3, ease: 'power2.in' });
-    gsap.to(ref.current, { opacity: 0, duration: 0.32, onComplete: onClose });
+    gsap.to(q('.hd-stage'), { scale: 0.9, y: 30, opacity: 0, duration: 0.3, ease: 'power2.in' });
+    gsap.to(ref.current, { opacity: 0, duration: 0.34, onComplete: onClose });
   };
   useEffect(() => {
-    const k = (e) => { if (e.key === 'Escape') close(); if (e.key === 'ArrowRight') go(i + 1); if (e.key === 'ArrowLeft') go(i - 1); };
+    const k = (e) => { if (e.key === 'Escape') (zoom ? setZoom(false) : close()); if (e.key === 'ArrowRight') go(i + 1); if (e.key === 'ArrowLeft') go(i - 1); };
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
   });
   const touch = useRef(null);
   const speak = () => {
     const s = window.speechSynthesis; if (!s) return;
     if (talk) { s.cancel(); setTalk(false); return; }
-    const u = new SpeechSynthesisUtterance(`Chương ${b.n + 1}. ${b.title}. ${b.date}. ${b.desc || ''}`);
+    const u = new SpeechSynthesisUtterance(`${a.title}. ${a.date}. ${a.desc || ''}`);
     u.lang = 'vi-VN'; const v = s.getVoices().find((x) => x.lang?.toLowerCase().startsWith('vi')); if (v) u.voice = v;
     u.rate = 0.95; u.onend = () => setTalk(false); s.cancel(); s.speak(u); setTalk(true);
   };
 
   return createPortal(
-    <div className="ob-wrap" ref={ref} style={{ '--c': b.color }}
+    <div className="hd-wrap" ref={ref} role="dialog" aria-modal="true" aria-label={a.title}
       onTouchStart={(e) => { touch.current = e.touches[0].clientX; }}
-      onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - (touch.current ?? 0); if (Math.abs(dx) > 50) go(i + (dx < 0 ? 1 : -1)); }}>
-      <div className="ob-bg" onClick={close} />
-      <div className="ob-burst" aria-hidden="true" />
-      <div className="ob-book">
-        <div className="ob-page l">
-          <div className="ob-photo" onClick={() => b.img && setZoom(!zoom)}>
-            <span className="ob-frame">
-              {b.img ? <img src={b.img} alt={b.title} draggable="false" /> : <span className="ob-ph">{b.S.ic}</span>}
-              <span className="ob-corner c-tl" /><span className="ob-corner c-tr" /><span className="ob-corner c-bl" /><span className="ob-corner c-br" />
-            </span>
-          </div>
-          <small className="ob-pno">— {b.n * 2 + 1} —</small>
+      onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - (touch.current ?? 0); if (Math.abs(dx) > 60) go(i + (dx < 0 ? 1 : -1)); }}>
+      <div className="hd-bg" onClick={close} />
+      <span className="hd-light" aria-hidden="true" />
+      <div className="hd-stage">
+        <div className="hd-art">
+          <button className="hd-frame" onClick={() => a.img && setZoom(true)} aria-label="Xem ảnh lớn">
+            <Framed a={a} big />
+            <span className="hw-glare on" aria-hidden="true" />
+            {a.featured && <Medal />}
+          </button>
         </div>
-        <div className="ob-page r">
-          <span className="ob-chap">Chương {b.n + 1} · {b.S.name}</span>
-          <h2>{b.title}</h2>
-          <span className="ob-date">🗓 {b.date}</span>
-          <p className="ob-story">{linkify(b.desc || 'Một trang ghi dấu cố gắng, được cất giữ trong thư viện này.')}</p>
-          {b.featured && <span className="ob-seal">★<small>tiêu biểu</small></span>}
-          <span className="ob-rune">{b.rune}</span>
-          <small className="ob-pno">— {b.n * 2 + 2} —</small>
+        <div className="hd-info">
+          <span className="hd-cat">{IC[a.category] || '✦'} {a.category}{a.featured ? ' · ★ Tiêu biểu' : ''}</span>
+          <h2>{a.title}</h2>
+          <span className="hd-date">🗓 {a.date}</span>
+          <p className="hd-desc">{linkify(a.desc || 'Một dấu mốc đáng nhớ trên hành trình học tập và rèn luyện.')}</p>
+          <small className="hd-fr">Khung: {frameName(a.fr)}</small>
         </div>
-        <div className="ob-leaf" aria-hidden="true" />
-        <div className="ob-cover" aria-hidden="true"><span className="ob-cover-in"><i>✦</i><b>{b.title}</b><small>{b.year}</small></span></div>
       </div>
-      <div className="ob-ui">
-        <button className="ob-nav" onClick={() => go(i - 1)} aria-label="Trang trước">‹</button>
-        <span className="ob-count">{i + 1} / {books.length}</span>
-        {b.img && <button onClick={() => setZoom(!zoom)}>{zoom ? <>↙<span> Thu nhỏ</span></> : <>🔍<span> Xem ảnh lớn</span></>}</button>}
-        {'speechSynthesis' in window && <button className={talk ? 'on' : ''} onClick={speak}>{talk ? <>⏹<span> Dừng</span></> : <>🔊<span> Kể chuyện</span></>}</button>}
-        <button className="ob-nav" onClick={() => go(i + 1)} aria-label="Trang sau">›</button>
+      <div className="hd-burst" aria-hidden="true" />
+      <div className="hd-ui">
+        <button className="hd-nav" onClick={() => go(i - 1)} aria-label="Thành tích trước">‹</button>
+        <span className="hd-count">{i + 1} / {items.length}</span>
+        {a.img && <button onClick={() => setZoom(true)}>🔍<span> Phóng to</span></button>}
+        {'speechSynthesis' in window && <button className={talk ? 'on' : ''} onClick={speak}>{talk ? <>⏹<span> Dừng</span></> : <>🔊<span> Đọc to</span></>}</button>}
+        <button className="hd-nav" onClick={() => go(i + 1)} aria-label="Thành tích sau">›</button>
       </div>
-      <button className="ob-x" onClick={close} aria-label="Đóng sách">✕</button>
-      {zoom && b.img && <div className="ob-zoom" onClick={() => setZoom(false)}><img src={b.img} alt={b.title} /></div>}
+      <button className="hd-x" onClick={close} aria-label="Đóng">✕</button>
+      {zoom && a.img && <div className="hd-zoom" onClick={() => setZoom(false)}><img src={a.img} alt={a.title} /></div>}
     </div>,
     document.body,
   );
@@ -259,12 +299,12 @@ function OpenBook({ books, at, from, onClose }) {
 export default function Museum() {
   const [view, setView] = useState(null);
   const ed = useEditable(data, 'achievements');
-  const books = useMemo(() => buildBooks(ed.items), [ed.items]);
+  const items = useMemo(() => build(ed.items), [ed.items]);
   const open = (n, el) => { const r = el.getBoundingClientRect(); setView({ n, from: { left: r.left, top: r.top, width: r.width, height: r.height } }); };
   return (
     <div className="mz">
-      <Library books={books} onOpen={open} />
-      {view && books.length > 0 && <OpenBook books={books} at={Math.min(view.n, books.length - 1)} from={view.from} onClose={() => setView(null)} />}
+      <Wall items={items} onOpen={open} />
+      {view && items.length > 0 && <Detail items={items} at={Math.min(view.n, items.length - 1)} from={view.from} onClose={() => setView(null)} />}
       {ed.canEdit && <ListEditor ed={ed} label="thành tích" fields={ACH_FIELDS} blank={ACH_BLANK} preview={ACH_PREVIEW} />}
     </div>
   );

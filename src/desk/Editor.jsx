@@ -12,6 +12,7 @@ import { EDIT_MODE, GH_MODE, loadData, newId, saveData, uploadImage, useEditable
 import { asset } from '../utils/asset';
 import { DEMO, useDiary } from './Diary';
 import { thock, pop } from './sound';
+import { FRAMES, frameOf } from './fields';
 
 export function useEditable(initial, file) {
   const real = useEditableList(initial, file);
@@ -129,6 +130,22 @@ function Form({ fields, init, onCancel, onSave, busy }) {
         const val = getK(v, f.key);
         const id = `ed-${f.key}`;
         if (f.type === 'check') return <label key={f.key} className="ed-check"><input type="checkbox" checked={!!val} onChange={(e) => set(f.key, e.target.checked)} /> {f.label}</label>;
+        if (f.type === 'frame') {
+          const cur = val || frameOf(v);
+          return (
+            <div key={f.key} className="ed-field">
+              <span>{f.label}: <b>{FRAMES.find((x) => x.key === cur)?.name}</b></span>
+              <div className="ed-frames" role="radiogroup">
+                {FRAMES.map((x) => (
+                  <button type="button" key={x.key} role="radio" aria-checked={cur === x.key} title={x.name} className={`ed-fr ${cur === x.key ? 'on' : ''}`} onClick={() => set(f.key, x.key)}>
+                    <span className={`hw-mould hw-f-${x.key}`}><span className="hw-mat"><i /></span></span>
+                    <small>{x.name}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        }
         if (f.type === 'image') {
           const pv = files[f.key] ? URL.createObjectURL(files[f.key]) : val ? asset(val) : null;
           return (
