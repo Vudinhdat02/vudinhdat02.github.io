@@ -102,14 +102,6 @@
  *  DỰ ÁN v2: GIỜ TRẢ BÀI (4 bài một hàng)
  * ================================================================= */
 .hp { max-width: 1320px; }
-/* bảng đen */
-.hp-board { position: relative; margin: 0 auto 34px; max-width: 980px; padding: 26px 34px 34px; border-radius: 6px; color: #f4f1e6;
-  background: radial-gradient(ellipse at 30% 30%, rgba(255, 255, 255, 0.07), transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(255, 255, 255, 0.05), transparent 50%), #2f4a3c;
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35), 0 0 0 10px #a9733f, 0 0 0 12px #7d5129, 0 18px 30px rgba(60, 40, 20, 0.25); }
-.hp-chalk { margin: 0; min-height: 2.6em; font: 400 clamp(1.4rem, 2.4vw, 1.9rem)/1.35 var(--hand); text-shadow: 0 0 1px rgba(255, 255, 255, 0.6), 0 0 6px rgba(255, 255, 255, 0.15); letter-spacing: 0.01em; }
-.hp-date { position: absolute; right: 26px; top: -2px; translate: 0 -100%; padding: 2px 10px; font: 1rem var(--hand); color: #7d5129; }
-.hp-eraser { position: absolute; right: 60px; bottom: -14px; width: 74px; height: 22px; border-radius: 4px; background: linear-gradient(#f0e6d0 0 55%, #4a5a8a 55%); box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3); }
-.hp-stick { position: absolute; right: 160px; bottom: -8px; width: 46px; height: 8px; border-radius: 4px; background: #fbfaf4; box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25); rotate: -8deg; }
 .hp-drawer { margin-bottom: 40px; }
 /* chồng bài trên bàn giáo viên */
 .hp-stack { position: relative; width: 74px; height: 56px; margin: 0 8px 10px auto; }
@@ -138,11 +130,11 @@
 .hp-score path { fill: none; stroke: var(--red); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 1; }
 .hp-score b { font: 400 2rem/1 var(--hand); }
 .hp-q { margin-top: 12px; font: 700 1.2rem/1.3 var(--body); }
-.hp-q > span:first-child { color: var(--red); }
 .hp-t { position: relative; display: inline; }
 .hp-ul { position: absolute; left: 0; bottom: -6px; width: 100%; height: 10px; overflow: visible; }
 .hp-ul path { fill: none; stroke: #e8b93d; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 0.6s ease; }
-.hp-slot:hover .hp-ul path { stroke-dashoffset: 0; }
+.hp-slot:hover .hp-ul path { stroke-dashoffset: 0; opacity: 1; }
+.hp-ul path { opacity: 0; }
 .hp-pencil { position: absolute; left: 0; bottom: -4px; width: 10px; height: 54px; opacity: 0; transform-origin: 50% 100%; rotate: 28deg; translate: -4px 0; pointer-events: none;
   background: linear-gradient(#f2a7b5 0 10%, #c9ccd6 10% 16%, #f5c542 16% 82%, #f2d7b0 82% 94%, #333 94%); clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%);
   transition: left 0.6s ease, opacity 0.2s; }
@@ -172,10 +164,6 @@
 .hp-x { position: fixed; top: 16px; right: 18px; font-size: 1.2rem; }
 
 @media (max-width: 759px) {
-  .hp-board { margin: 6px 6px 28px; padding: 18px 18px 26px; box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.35), 0 0 0 7px #a9733f, 0 0 0 9px #7d5129, 0 12px 20px rgba(60, 40, 20, 0.2); }
-  .hp-chalk { font-size: 1.3rem; }
-  .hp-eraser { right: 24px; width: 56px; } .hp-stick { right: 100px; }
-  .hp-date { display: none; }
   .hp-stack { display: none; }
   .hp-card { min-height: 0; rotate: 0deg; }
   .hp-note { display: none; }
@@ -185,3 +173,146 @@
   .hp-card, .hp-slot:hover .hp-card { transform: none; }
   .hp-pencil { display: none; }
 }
+
+/* ---------- ảnh minh hoạ trong thẻ ---------- */
+.hp-img { position: relative; display: block; margin: 4px 0 2px; overflow: hidden; border-radius: 4px; aspect-ratio: 16 / 9; background: #eef1f7; box-shadow: 0 0 0 1px rgba(31, 47, 110, 0.12); }
+.hp-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+.hp-slot:hover .hp-img img { transform: scale(1.06); }
+.hp-ph { display: grid; place-items: center; width: 100%; height: 100%; font-size: 3rem; }
+.hs-img { margin: 14px 0 6px; }
+.hs-img img { display: block; max-width: 100%; max-height: 360px; border-radius: 6px; box-shadow: 0 6px 18px rgba(31, 47, 110, 0.18); }
+.hp-q { margin-top: 10px; }
+.hp-t em { font-style: normal; color: #7ee787; }
+
+/* =================================================================
+ *  10 KIỂU TRÌNH BÀY THẺ DỰ ÁN (hp-s-*)
+ * ================================================================= */
+.hp-card:not(.hp-s-exam)::before { display: none; }
+.hp-card:not(.hp-s-exam) .hp-head { margin-right: 0; }
+
+/* 2. vở ô ly: giấy ô vuông, gáy lò xo */
+.hp-s-notebook { padding: 36px 18px 16px 22px; background-color: #fff;
+  background-image: linear-gradient(rgba(120, 150, 210, 0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(120, 150, 210, 0.16) 1px, transparent 1px);
+  background-size: 15px 15px; background-position: 0 0; --line: 30px; }
+.hp-spiral { position: absolute; left: 10px; right: 10px; top: -10px; height: 26px; background: radial-gradient(circle at 8px 18px, #fff 4px, #b9bfcc 4.5px, #b9bfcc 5.5px, transparent 6px) 0 0 / 22px 26px repeat-x, linear-gradient(90deg, transparent 6px, #8d94a5 6px 10px, transparent 10px) 0 0 / 22px 16px repeat-x; }
+.hp-s-notebook .hp-head { border-bottom-color: #9aa3b5; }
+.hp-s-notebook .hp-ul path { stroke: #3b6fd8; }
+
+/* 3. giấy nhớ vàng có băng dính */
+.hp-s-sticky { padding: 30px 18px 18px; background: linear-gradient(170deg, #fff7a8, #fde96d 70%, #f7dc4f); box-shadow: 0 2px 2px rgba(0, 0, 0, 0.06), 0 16px 22px -8px rgba(120, 90, 0, 0.35); border-radius: 2px 2px 18px 2px / 2px 2px 8px 2px; }
+.hp-tape { position: absolute; left: 50%; top: -12px; width: 96px; height: 26px; translate: -50% 0; rotate: -3deg; background: rgba(255, 255, 255, 0.55); border-left: 2px dashed rgba(0, 0, 0, 0.06); border-right: 2px dashed rgba(0, 0, 0, 0.06); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.hp-s-sticky .hp-head { border-bottom: 2px dashed rgba(90, 67, 0, 0.35); color: #7a6200; }
+.hp-s-sticky .hp-q { font: 400 1.5rem/1.2 var(--hand); color: #3d2f00; }
+.hp-s-sticky .hp-ex { color: #4d3d00; }
+.hp-s-sticky .hp-tags i { border-color: #7a6200; background: rgba(255, 255, 255, 0.4); color: #4d3d00; }
+.hp-s-sticky .hp-ear { background: linear-gradient(315deg, #fff 50%, #e9cf3f 50%, #f5df60 80%); }
+
+/* 4. ảnh polaroid ghim đinh */
+.hp-s-polaroid { padding: 14px 14px 18px; background: #fffefb; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 16px 26px -8px rgba(31, 47, 110, 0.3); }
+.hp-s-polaroid .hp-head { order: 2; border: 0; padding: 0; }
+.hp-s-polaroid .hp-img { order: 1; margin: 0; aspect-ratio: 4 / 3; border-radius: 0; background: linear-gradient(135deg, #ffe0c2, #c8dcff); }
+.hp-s-polaroid .hp-q { order: 3; margin-top: 2px; font: 400 1.55rem/1.15 var(--hand); text-align: center; }
+.hp-s-polaroid .hp-ex { order: 4; -webkit-line-clamp: 3; font-size: 1.02rem; line-height: 1.4; }
+.hp-s-polaroid .hp-tags { order: 5; justify-content: center; }
+.hp-s-polaroid .hp-foot { order: 6; text-align: center; }
+.hp-pin { position: absolute; z-index: 2; left: 50%; top: -9px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff9c8f, #d33a2c 55%, #8e1a10); box-shadow: 0 4px 5px rgba(0, 0, 0, 0.3); }
+.hp-slot:hover .hp-s-polaroid .hp-pin { animation: hp-wob 0.6s ease-in-out; }
+@keyframes hp-wob { 30% { translate: 0 -4px; } 60% { translate: 0 1px; } }
+
+/* 5. thẻ ghi chú (index card) */
+.hp-s-index { padding: 18px 18px 16px; --line: 28px; background-color: #fffdf7; border-radius: 3px;
+  background-image: repeating-linear-gradient(transparent 0 27px, rgba(80, 130, 200, 0.28) 27px 28px); background-position: 0 10px; }
+.hp-s-index .hp-head { border-bottom: 2px solid rgba(214, 69, 58, 0.65); }
+.hp-s-index .hp-q { margin-top: 0; min-height: 30px; }
+
+/* 6. bản vẽ kỹ thuật */
+.hp-s-blueprint { padding: 18px 18px 16px; color: #e8f1ff; border-radius: 2px;
+  background: linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px), linear-gradient(160deg, #1e5aa8, #164585);
+  background-size: 20px 20px, 20px 20px, 100% 100%; box-shadow: inset 0 0 0 6px #164585, inset 0 0 0 7px rgba(255, 255, 255, 0.55), 0 16px 26px -8px rgba(22, 69, 133, 0.5); }
+.hp-s-blueprint .hp-head { border-bottom: 1px solid rgba(255, 255, 255, 0.55); color: #bcd4ff; font-family: var(--mono); }
+.hp-s-blueprint .hp-q { color: #fff; font-family: var(--mono); font-size: 1.08rem; text-transform: uppercase; letter-spacing: 0.02em; }
+.hp-s-blueprint .hp-ex { font: 0.92rem/1.55 var(--mono); color: #d8e6ff; }
+.hp-s-blueprint .hp-tags i { border-color: rgba(255, 255, 255, 0.7); background: transparent; color: #fff; border-radius: 2px; }
+.hp-s-blueprint .hp-foot { font: 700 0.9rem var(--mono); color: #ffe27a; letter-spacing: 0.06em; }
+.hp-s-blueprint .hp-ul path { stroke: #ffe27a; }
+.hp-s-blueprint .hp-img { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6); }
+
+/* 7. bảng đen */
+.hp-s-chalk { padding: 18px 18px 16px; color: #f4f1e6; border-radius: 4px;
+  background: radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.08), transparent 60%), #2f4a3c;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.35), 0 0 0 7px #a9733f, 0 0 0 9px #7d5129, 0 18px 26px -8px rgba(60, 40, 20, 0.45); }
+.hp-s-chalk .hp-head { border-bottom: 2px solid rgba(255, 255, 255, 0.5); color: #cfe0d4; }
+.hp-s-chalk .hp-q { font: 400 1.55rem/1.15 var(--hand); color: #fff; text-shadow: 0 0 1px rgba(255, 255, 255, 0.6); }
+.hp-s-chalk .hp-ex { color: #e6efe8; }
+.hp-s-chalk .hp-tags i { border-color: rgba(255, 255, 255, 0.75); background: transparent; color: #fff; border-style: dashed; }
+.hp-s-chalk .hp-foot { color: #ffd98a; }
+.hp-s-chalk .hp-ul path { stroke: #fff; }
+
+/* 8. bìa hồ sơ */
+.hp-s-folder { margin-top: 22px; padding: 20px 18px 16px; border-radius: 0 6px 6px 6px; background: linear-gradient(#f3d9a4, #ebcb88); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 16px 24px -8px rgba(120, 90, 40, 0.4); color: #4a3510; }
+.hp-ftab { position: absolute; left: 0; top: -22px; padding: 3px 16px 0; height: 24px; border-radius: 8px 8px 0 0; background: #f3d9a4; font: 700 0.78rem var(--mono); letter-spacing: 0.08em; color: #7a5a1c; }
+.hp-s-folder::after { content: ''; position: absolute; left: 42%; right: 14px; top: -14px; height: 14px; background: repeating-linear-gradient(transparent 0 7px, rgba(80, 130, 200, 0.2) 7px 8px), #fff; rotate: 2deg; box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1); transition: translate 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.hp-slot:hover .hp-s-folder::after { translate: 0 -8px; }
+.hp-s-folder .hp-head { border-bottom: 2px solid rgba(122, 90, 28, 0.45); color: #7a5a1c; }
+.hp-s-folder .hp-q { color: #3a2a0c; }
+.hp-s-folder .hp-ex { color: #4a3510; }
+.hp-s-folder .hp-tags i { border-color: #7a5a1c; background: rgba(255, 255, 255, 0.45); color: #4a3510; }
+.hp-s-folder .hp-ear { display: none; }
+
+/* 9. thẻ thư viện */
+.hp-s-library { padding: 18px 18px 16px; background-color: #fbf3df; border: 1px solid #d9c89f; border-radius: 3px;
+  background-image: repeating-linear-gradient(transparent 0 29px, rgba(120, 90, 40, 0.25) 29px 30px); background-position: 0 12px; color: #3a2a0c; }
+.hp-s-library .hp-head { border-bottom: 3px double #b0904c; color: #8a6a2a; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; }
+.hp-s-library .hp-q { font-family: var(--mono); font-size: 1.05rem; color: #3a2a0c; }
+.hp-s-library .hp-ex { color: #4a3a1c; }
+.hp-s-library .hp-tags i { border-color: #8a6a2a; background: transparent; color: #5a4310; }
+.hp-due { position: absolute; right: 14px; bottom: 14px; padding: 3px 10px; border: 2.5px solid #6b4bb3; border-radius: 4px; font: 800 0.75rem var(--mono); letter-spacing: 0.12em; color: #6b4bb3; opacity: 0.8; transform: rotate(-8deg); pointer-events: none; }
+
+/* 10. màn hình code */
+.hp-s-terminal { padding: 0 0 14px; border-radius: 10px; overflow: hidden; background: #0f141c; color: #c9d1d9; box-shadow: 0 0 0 1px #2b3240, 0 18px 30px -8px rgba(0, 0, 0, 0.45); }
+.hp-s-terminal > * { margin-left: 16px; margin-right: 16px; }
+.hp-bar { display: flex; align-items: center; gap: 6px; margin: 0 0 6px !important; padding: 9px 12px; background: #1c2230; border-bottom: 1px solid #2b3240; }
+.hp-bar i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; }
+.hp-bar i:nth-child(2) { background: #febc2e; } .hp-bar i:nth-child(3) { background: #28c840; }
+.hp-bar small { margin-left: 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 0.78rem var(--mono); color: #8b949e; }
+.hp-s-terminal .hp-head { margin-right: 16px; border-bottom: 1px dashed #2b3240; color: #8b949e; font-family: var(--mono); }
+.hp-s-terminal .hp-q { font: 700 1.02rem var(--mono); color: #e6edf3; }
+.hp-s-terminal .hp-ex { font: 0.9rem/1.55 var(--mono); color: #a5b3c2; }
+.hp-s-terminal .hp-tags i { border: 0; padding: 0 4px 0 0; background: transparent; color: #79c0ff; }
+.hp-s-terminal .hp-tags i.more { color: #8b949e; }
+.hp-s-terminal .hp-foot { font: 0.9rem var(--mono); color: #7ee787; }
+.hp-s-terminal .hp-foot::after { content: '▋'; margin-left: 4px; animation: hp-blink 1s steps(1) infinite; }
+@keyframes hp-blink { 50% { opacity: 0; } }
+.hp-s-terminal .hp-ul path { stroke: #7ee787; }
+.hp-s-terminal .hp-ear, .hp-s-blueprint .hp-ear, .hp-s-chalk .hp-ear, .hp-s-polaroid .hp-ear { display: none; }
+
+/* ---------- ô xem trước kiểu trong bảng sửa ---------- */
+.hp-mini { position: relative; display: grid; align-content: start; gap: 4px; width: 100%; aspect-ratio: 4 / 3; padding: 8px 7px; border-radius: 3px; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); overflow: hidden; }
+.hp-mini i { display: block; height: 4px; border-radius: 2px; background: #c9d1e3; }
+.hp-mini i:first-child { width: 70%; height: 6px; background: #1f2f6e; }
+.hp-mini i:nth-child(3) { width: 55%; }
+.hp-m-exam { background: repeating-linear-gradient(transparent 0 7px, rgba(80, 130, 200, 0.25) 7px 8px), linear-gradient(90deg, transparent 5px, #e48a82 5px 6px, transparent 6px), #fff; }
+.hp-m-exam::after { content: '10'; position: absolute; right: 4px; top: 2px; font: 700 10px var(--hand); color: #d33a2c; border: 1.5px solid #d33a2c; border-radius: 50%; padding: 0 2px; }
+.hp-m-notebook { padding-top: 12px; background: linear-gradient(rgba(120, 150, 210, 0.25) 1px, transparent 1px) 0 0 / 6px 6px, linear-gradient(90deg, rgba(120, 150, 210, 0.25) 1px, transparent 1px) 0 0 / 6px 6px, #fff; }
+.hp-m-notebook::before { content: ''; position: absolute; left: 4px; right: 4px; top: 2px; height: 5px; background: radial-gradient(circle, #8d94a5 1.5px, transparent 2px) 0 0 / 7px 5px repeat-x; }
+.hp-m-sticky { background: linear-gradient(170deg, #fff7a8, #f7dc4f); }
+.hp-m-sticky i { background: #a88a14; } .hp-m-sticky i:first-child { background: #5a4300; }
+.hp-m-polaroid { padding: 4px 4px 0; background: #fff; }
+.hp-m-polaroid i:first-child { width: 100%; height: 24px; background: linear-gradient(135deg, #ffe0c2, #9cbcff); border-radius: 0; }
+.hp-m-polaroid i:nth-child(2) { width: 60%; justify-self: center; background: #1f2f6e; }
+.hp-m-polaroid i:nth-child(3) { display: none; }
+.hp-m-index { background: linear-gradient(transparent 12px, #e48a82 12px 13px, transparent 13px), repeating-linear-gradient(transparent 0 6px, rgba(80, 130, 200, 0.3) 6px 7px) 0 14px, #fffdf7; }
+.hp-m-blueprint { background: linear-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px) 0 0 / 6px 6px, linear-gradient(90deg, rgba(255, 255, 255, 0.15) 1px, transparent 1px) 0 0 / 6px 6px, #1e5aa8; }
+.hp-m-blueprint i { background: rgba(255, 255, 255, 0.7); } .hp-m-blueprint i:first-child { background: #fff; }
+.hp-m-chalk { background: #2f4a3c; box-shadow: 0 0 0 3px #a9733f; }
+.hp-m-chalk i { background: rgba(255, 255, 255, 0.6); } .hp-m-chalk i:first-child { background: #fff; }
+.hp-m-folder { margin-top: 5px; overflow: visible; border-radius: 0 3px 3px 3px; background: #ebcb88; }
+.hp-m-folder::before { content: ''; position: absolute; left: 0; top: -5px; width: 40%; height: 6px; border-radius: 3px 3px 0 0; background: #ebcb88; }
+.hp-m-folder i { background: #a0782e; } .hp-m-folder i:first-child { background: #4a3510; }
+.hp-m-library { background: repeating-linear-gradient(transparent 0 6px, rgba(120, 90, 40, 0.3) 6px 7px), #fbf3df; }
+.hp-m-library::after { content: ''; position: absolute; right: 4px; bottom: 4px; width: 16px; height: 7px; border: 1.5px solid #6b4bb3; border-radius: 2px; rotate: -10deg; }
+.hp-m-library i { background: #b0904c; } .hp-m-library i:first-child { background: #3a2a0c; }
+.hp-m-terminal { padding-top: 12px; border-radius: 4px; background: linear-gradient(#1c2230 0 8px, #0f141c 8px); }
+.hp-m-terminal::before { content: ''; position: absolute; left: 4px; top: 2px; width: 14px; height: 4px; background: radial-gradient(circle, #ff5f57 1.6px, transparent 2px) 0 0 / 5px 4px, radial-gradient(circle, #28c840 1.6px, transparent 2px) 10px 0 / 5px 4px no-repeat; }
+.hp-m-terminal i { background: #3d4757; } .hp-m-terminal i:first-child { background: #7ee787; }
+@media (max-width: 759px) { .hp-s-folder { margin-top: 26px; } }

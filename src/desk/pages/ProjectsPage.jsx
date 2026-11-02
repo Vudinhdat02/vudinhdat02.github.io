@@ -12,7 +12,8 @@ import projects from '../../data/projects.json';
 import { ListEditor, useEditable } from '../Editor';
 import { useDiary, vi } from '../Diary';
 import { buzz, chime, thock, thud, whoosh } from '../sound';
-import { PROJ_BLANK, PROJ_FIELDS, PROJ_PREVIEW } from '../fields';
+import { LOOKS, PROJ_BLANK, PROJ_FIELDS, PROJ_PREVIEW, lookOf } from '../fields';
+import { asset } from '../../utils/asset';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -61,7 +62,8 @@ function Sheet({ p, n }) {
         <b>10</b>
         <em>{REMARKS[n % REMARKS.length]}</em>
       </div>
-      <h3 className="hs-q"><span>Câu {n + 1}.</span> {p.title}</h3>
+      <h3 className="hs-q">{p.title}</h3>
+      {p.thumb && <figure className="hs-img"><img src={asset(p.thumb)} alt={p.title} /></figure>}
       <p className="hs-label"><Tick />Bài làm:</p>
       <p className="hs-a">{desc.split(/(\s+)/).map((w, i) => (/\s/.test(w) ? w : <span key={i} className="hs-w">{w}</span>))}</p>
       {(p.tags || []).length > 0 && (
@@ -139,11 +141,16 @@ function gradeTimeline(sheet) {
 }
 
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const NOTES = ['Xem bài làm!', 'Bài này hay nè', 'Mở ra xem đi ✎', 'Điểm 10 đó!'];
+const NOTES = ['Xem chi tiết!', 'Dự án này hay nè', 'Mở ra xem đi ✎', 'Bấm thử xem!'];
+/* lời mời bấm vào, theo từng kiểu trình bày */
+const CTA = { exam: 'Bấm để xem bài làm →', notebook: 'Lật vở xem tiếp →', sticky: 'Xem thêm →', polaroid: 'Xem dự án →', index: 'Xem chi tiết →', blueprint: 'MỞ BẢN VẼ →', chalk: 'Xem lời giải →', folder: 'Mở hồ sơ →', library: 'Mượn sách đọc →', terminal: '$ open --detail' };
 
-/* một tờ bài nhỏ trên bàn */
+/* một thẻ dự án, trình bày theo 1 trong 10 kiểu */
 function Card({ p, n, onOpen }) {
   const desc = vi(p.desc) || 'Đang cập nhật…';
+  const look = lookOf(p, n);
+  const img = p.thumb ? asset(p.thumb) : null;
+  const tags = p.tags || [];
   const tilt = (e) => {
     if (e.pointerType !== 'mouse') return;
     const el = e.currentTarget, r = el.getBoundingClientRect();
@@ -153,17 +160,26 @@ function Card({ p, n, onOpen }) {
   const untilt = (e) => { e.currentTarget.style.setProperty('--rx', '0deg'); e.currentTarget.style.setProperty('--ry', '0deg'); };
   return (
     <div className="hp-slot" onPointerMove={tilt} onPointerLeave={untilt}>
-      <button className="hp-card" style={{ '--tilt': `${TILT[n % TILT.length] * 2}deg` }} onClick={(e) => onOpen(n, e.currentTarget)}
-        onMouseEnter={() => thock(1.6 + (n % 4) * 0.06)} aria-label={`Xem bài làm: ${p.title}`}>
-        <span className="hp-head"><small>{CAT_IC[p.category] || '📁'} {p.category || '—'}</small><small>{p.year || ''}</small></span>
-        <span className="hp-score" aria-hidden="true">
-          <svg viewBox="0 0 120 90"><path pathLength="1" d="M60 8 C 20 6, 6 30, 12 52 C 18 78, 70 86, 98 70 C 120 56, 112 18, 72 10 C 60 8, 48 12, 40 16" /></svg>
-          <b>10</b>
-        </span>
-        <span className="hp-q"><span>Câu {n + 1}.</span> <span className="hp-t">{p.title}<svg className="hp-ul" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 8 C 40 2, 80 12, 120 6 S 180 4, 198 7" /></svg><span className="hp-pencil" aria-hidden="true" /></span></span>
+      <button className={`hp-card hp-s-${look}`} style={{ '--tilt': `${TILT[n % TILT.length] * 2}deg` }} onClick={(e) => onOpen(n, e.currentTarget)}
+        onMouseEnter={() => thock(1.6 + (n % 4) * 0.06)} aria-label={`Xem chi tiết: ${p.title}`}>
+        {look === 'notebook' && <span className="hp-spiral" aria-hidden="true" />}
+        {look === 'sticky' && <span className="hp-tape" aria-hidden="true" />}
+        {look === 'polaroid' && <span className="hp-pin" aria-hidden="true" />}
+        {look === 'folder' && <span className="hp-ftab" aria-hidden="true">{p.category || 'Dự án'}</span>}
+        {look === 'terminal' && <span className="hp-bar" aria-hidden="true"><i /><i /><i /><small>~/{(p.id || p.title).toString().toLowerCase().replace(/\s+/g, '-').slice(0, 22)}</small></span>}
+        <span className="hp-head"><small>{look === 'terminal' ? `# ${p.category || ''}` : `${CAT_IC[p.category] || '📁'} ${p.category || '—'}`}</small><small>{p.year || ''}</small></span>
+        {look === 'exam' && (
+          <span className="hp-score" aria-hidden="true">
+            <svg viewBox="0 0 120 90"><path pathLength="1" d="M60 8 C 20 6, 6 30, 12 52 C 18 78, 70 86, 98 70 C 120 56, 112 18, 72 10 C 60 8, 48 12, 40 16" /></svg>
+            <b>10</b>
+          </span>
+        )}
+        {(img || look === 'polaroid') && <span className="hp-img">{img ? <img src={img} alt="" loading="lazy" draggable="false" /> : <span className="hp-ph">{CAT_IC[p.category] || '💡'}</span>}</span>}
+        <span className="hp-q"><span className="hp-t">{look === 'terminal' && <em>$ cat </em>}{p.title}<svg className="hp-ul" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 8 C 40 2, 80 12, 120 6 S 180 4, 198 7" /></svg><span className="hp-pencil" aria-hidden="true" /></span></span>
         <span className="hp-ex">{desc}</span>
-        <span className="hp-tags">{(p.tags || []).slice(0, 3).map((t) => <i key={t}>{t}</i>)}{(p.tags || []).length > 3 && <i className="more">+{p.tags.length - 3}</i>}</span>
-        <span className="hp-foot">Bấm để xem bài làm →</span>
+        <span className="hp-tags">{tags.slice(0, 3).map((t) => <i key={t}>{look === 'terminal' ? `--${t.toLowerCase().replace(/\s+/g, '-')}` : t}</i>)}{tags.length > 3 && <i className="more">+{tags.length - 3}</i>}</span>
+        {look === 'library' && <span className="hp-due" aria-hidden="true">ĐÃ MƯỢN · {p.year || ''}</span>}
+        <span className="hp-foot">{CTA[look]}</span>
         <span className="hp-ear" aria-hidden="true" />
       </button>
       <span className="hp-note" aria-hidden="true">{NOTES[n % NOTES.length]}</span>
@@ -258,10 +274,21 @@ export default function ProjectsPage() {
       tl.fromTo(c, { x: d.left + d.width / 2 - (r.left + r.width / 2), y: d.top + d.height / 2 - (r.top + r.height / 2), rotate: gsap.utils.random(-30, 30), scale: 0.35, opacity: 0 },
         { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1, duration: 0.75, ease: 'power3.out', clearProps: 'transform,opacity', onStart: () => thock(1.3 + k * 0.05) }, k * 0.12);
     });
-    // rồi khoanh điểm từng tờ
+    // rồi mỗi kiểu có một hiệu ứng riêng khi đặt xuống bàn
     cards.forEach((c, k) => {
-      tl.fromTo(c.querySelector('.hp-score path'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.45, ease: 'power1.inOut' }, 0.5 + k * 0.12)
-        .fromTo(c.querySelector('.hp-score b'), { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(3)' }, 0.8 + k * 0.12);
+      const t = 0.55 + k * 0.12, $ = (sel) => c.querySelector(sel);
+      if ($('.hp-score')) {
+        tl.fromTo($('.hp-score path'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.45, ease: 'power1.inOut' }, t)
+          .fromTo($('.hp-score b'), { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(3)' }, t + 0.3);
+      }
+      if ($('.hp-s-polaroid')) tl.fromTo($('.hp-img'), { filter: 'brightness(2.2) sepia(0.6) blur(6px)' }, { filter: 'brightness(1) sepia(0) blur(0px)', duration: 1.8, ease: 'power2.out', clearProps: 'filter' }, t);
+      if ($('.hp-s-sticky')) tl.fromTo($('.hp-card'), { rotateX: 40, transformOrigin: '50% 0%' }, { rotateX: 0, duration: 1.2, ease: 'elastic.out(1, 0.35)', clearProps: 'transform' }, t);
+      if ($('.hp-s-terminal')) tl.fromTo($('.hp-ex'), { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', duration: 0.9, ease: 'steps(8)', clearProps: 'clipPath' }, t);
+      if ($('.hp-s-chalk')) tl.fromTo([$('.hp-t'), $('.hp-ex')], { opacity: 0, filter: 'blur(3px)' }, { opacity: 1, filter: 'blur(0px)', duration: 0.8, stagger: 0.2, clearProps: 'filter,opacity' }, t);
+      if ($('.hp-s-blueprint')) tl.fromTo($('.hp-card'), { backgroundSize: '0px 0px, 0px 0px, 100% 100%' }, { backgroundSize: '20px 20px, 20px 20px, 100% 100%', duration: 0.9, ease: 'power2.out', clearProps: 'backgroundSize' }, t);
+      if ($('.hp-due')) tl.fromTo($('.hp-due'), { scale: 2.6, opacity: 0, rotate: -30 }, { scale: 1, opacity: 1, rotate: -8, duration: 0.3, ease: 'power4.in', onComplete: thud }, t + 0.2);
+      if ($('.hp-ftab')) tl.fromTo($('.hp-ftab'), { y: 20 }, { y: 0, duration: 0.5, ease: 'back.out(3)' }, t);
+      if ($('.hp-s-notebook')) tl.fromTo($('.hp-ul path'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.6, clearProps: 'strokeDashoffset' }, t);
     });
     return tl;
   };
@@ -272,8 +299,6 @@ export default function ProjectsPage() {
       const q = gsap.utils.selector(root);
       if (first.current) {
         first.current = false;
-        gsap.from(q('.hp-board'), { y: -50, opacity: 0, duration: 0.7, ease: 'back.out(1.5)' });
-        gsap.fromTo(q('.hp-chalk .ch'), { opacity: 0 }, { opacity: 1, duration: 0.01, stagger: 0.035, delay: 0.5 });
         gsap.from(q('.hs-tabs button'), { y: 30, opacity: 0, stagger: 0.07, duration: 0.5, ease: 'back.out(2)', delay: 0.3 });
       }
       const cards = q('.hp-slot');
@@ -299,16 +324,9 @@ export default function ProjectsPage() {
   };
   const count = (c) => list.filter((p) => p.category === c).length;
   const open = (n, el) => { const r = el.getBoundingClientRect(); setView({ n, from: { left: r.left, top: r.top, width: r.width, height: r.height } }); };
-  const chalk = `Hôm nay trả ${shown.length} bài kiểm tra${tab === 'all' ? '' : ` môn ${tab}`}. Bấm vào bài để xem thầy chấm!`;
 
   return (
     <div className="hs hp" ref={root}>
-      <div className="hp-board">
-        <p className="hp-chalk" aria-label={chalk}>{[...chalk].map((ch, k) => <span key={k} className="ch" aria-hidden="true">{ch}</span>)}</p>
-        <span className="hp-date" aria-hidden="true">Kiểm tra cuối kỳ</span>
-        <span className="hp-eraser" aria-hidden="true" />
-        <span className="hp-stick" aria-hidden="true" />
-      </div>
       <div className="hs-drawer hp-drawer">
         <div className="hs-tabs" role="tablist" aria-label="Chọn môn">
           <button role="tab" aria-selected={tab === 'all'} className={tab === 'all' ? 'on' : ''} onClick={() => pick('all')}>🗂 Tất cả <b>{list.length}</b></button>

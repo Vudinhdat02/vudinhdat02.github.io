@@ -1,5 +1,5 @@
 /*
- * Trang "Thành tích": BỨC TƯỜNG VINH DANH.
+ * Trang "Thành tích": GÓC NHỎ CỦA MÌNH, một bức tường treo khung.
  *  - Mỗi thành tích là một khung ảnh treo bằng dây trên đinh, xếp so le kiểu phòng tranh, cuộn dọc để xem tiếp.
  *  - 10 kiểu khung (chọn khi thêm/sửa thành tích). Khung đung đưa khi cuộn tới.
  *  - Rê chuột: đèn rọi sáng lên, kính loé, khung nghiêng theo chuột, kim tuyến bay, biển tên trượt ra.
@@ -167,8 +167,7 @@ function Wall({ items, onOpen }) {
             <path pathLength="1" d="M104 64 C 60 60, 30 40, 22 8" /><path pathLength="1" d="M116 64 C 160 60, 190 40, 198 8" />
             {[0, 1, 2, 3, 4].map((k) => <g key={k}><ellipse cx={30 + k * 15} cy={18 + k * 9} rx="8" ry="3.4" transform={`rotate(${-50 + k * 9} ${30 + k * 15} ${18 + k * 9})`} /><ellipse cx={190 - k * 15} cy={18 + k * 9} rx="8" ry="3.4" transform={`rotate(${50 - k * 9} ${190 - k * 15} ${18 + k * 9})`} /></g>)}
           </svg>
-          <h1>Bức tường vinh danh</h1>
-          <p>Mỗi khung là một lần cố gắng được ghi nhận</p>
+          <h1>Góc nhỏ của mình</h1>
         </div>
         <nav className="hw-tabs" aria-label="Lọc thành tích">
           <button className={tab === 'all' ? 'on' : ''} onClick={() => pick('all')}>Tất cả <b>{items.length}</b></button>

@@ -12,7 +12,7 @@ import { EDIT_MODE, GH_MODE, loadData, newId, saveData, uploadImage, useEditable
 import { asset } from '../utils/asset';
 import { DEMO, useDiary } from './Diary';
 import { thock, pop } from './sound';
-import { FRAMES, frameOf } from './fields';
+import { FRAMES, LOOKS, frameOf, lookOf } from './fields';
 
 export function useEditable(initial, file) {
   const real = useEditableList(initial, file);
@@ -139,6 +139,22 @@ function Form({ fields, init, onCancel, onSave, busy }) {
                 {FRAMES.map((x) => (
                   <button type="button" key={x.key} role="radio" aria-checked={cur === x.key} title={x.name} className={`ed-fr ${cur === x.key ? 'on' : ''}`} onClick={() => set(f.key, x.key)}>
                     <span className={`hw-mould hw-f-${x.key}`}><span className="hw-mat"><i /></span></span>
+                    <small>{x.name}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        if (f.type === 'look') {
+          const cur = val || lookOf(v);
+          return (
+            <div key={f.key} className="ed-field">
+              <span>{f.label}: <b>{LOOKS.find((x) => x.key === cur)?.name}</b></span>
+              <div className="ed-frames" role="radiogroup">
+                {LOOKS.map((x) => (
+                  <button type="button" key={x.key} role="radio" aria-checked={cur === x.key} title={x.name} className={`ed-fr ${cur === x.key ? 'on' : ''}`} onClick={() => set(f.key, x.key)}>
+                    <span className={`hp-mini hp-m-${x.key}`}><i /><i /><i /></span>
                     <small>{x.name}</small>
                   </button>
                 ))}

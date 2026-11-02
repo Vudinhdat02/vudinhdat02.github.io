@@ -1,0 +1,27 @@
+[
+  {
+    "id": "cv1muctieu",
+    "name": "Mục tiêu",
+    "desc": "Với nền tảng cơ bản về lập trình phần mềm, lập trình nhúng IoT (ESP32, STM32) và sử dụng các công cụ AI, tôi mong muốn có cơ hội được làm việc tại công ty để học hỏi thêm về quy trình phát triển phần mềm, tích lũy kinh nghiệm thực tế trong môi trường doanh nghiệp, và từng bước xây dựng chuyên môn vững vàng. Đồng thời, tôi hy vọng có thể đóng góp sự nhiệt huyết và tinh thần cầu tiến để hỗ trợ nhóm, công ty trong các dự án được giao."
+  },
+  {
+    "id": "cv2hocvan",
+    "name": "Học vấn",
+    "desc": "2022 - 2027 | **Trường Đại Học Công Nghệ Thông Tin và Truyền Thông - Đại Học Thái Nguyên**\n | **Chuyên ngành: Kỹ Thuật Phần Mềm**\n | - GPA: 3.83/4.0\n | **Môn học liên quan:** Kiến trúc và thiết kế phần mềm, Phương pháp luận lập trình, Vận hành và bảo trì phần mềm, Kiểm thử và đảm bảo chất lượng phần mềm, Mạng máy tính, Quy chuẩn CNTT quốc gia, An toàn hệ thống thông tin, Quản trị dự án CNTT.\n | **Thành tích nổi bật:**\n | - Học bổng loại xuất sắc 5 năm liên tiếp.\n | - Giải nhì cuộc thi Phần mềm mã nguồn mở cấp trường.\n | - Có 2 bài báo NCKH được đăng trên hội thảo quốc tế ICTA\n | - Danh hiệu Sinh Viên Xuất Sắc, Sinh Viên 5 Tốt, Sinh Viên Tiêu Biểu khối Đại Học Thái Nguyên."
+  },
+  {
+    "id": "cv3chungchi",
+    "name": "Chứng chỉ",
+    "desc": "Tiếng Anh | Cambridge B1 - 2023"
+  },
+  {
+    "id": "cv4kynang",
+    "name": "Kỹ năng",
+    "desc": "Kỹ năng chuyên môn | Phân tích thiết kế hệ thống phần mềm, lập trình app mobile - web, nhúng IoT ESP32 - STM32, sử dụng các công cụ AI trong lập trình.\nNgôn ngữ | C/C++, C#, ASP.NET, Java, Kotlin, HTML, CSS, JavaScript, SQL.\nKỹ năng khác | Giao tiếp, đàm phán, giải quyết vấn đề linh hoạt, quản lý thời gian, làm việc nhóm, sửa chữa phần cứng máy tính."
+  },
+  {
+    "id": "cv5duan",
+    "name": "Dự án đã phát triển",
+    "desc": "03/2026 - 10/2026 | **DMS application - Ứng dụng giám sát và cảnh báo buồn ngủ trên thiết bị android**\n | Link: https://github.com/Vudinhdat02/dmsApplication"
+  }
+]

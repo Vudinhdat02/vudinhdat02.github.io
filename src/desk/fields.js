@@ -33,6 +33,20 @@ export const FRAMES = [
   { key: 'modern', name: 'Đen mảnh' },
   { key: 'velvet', name: 'Hộp nhung xanh' },
 ];
+/* 10 kiểu trình bày thẻ dự án */
+export const LOOKS = [
+  { key: 'exam', name: 'Bài kiểm tra' },
+  { key: 'notebook', name: 'Vở ô ly' },
+  { key: 'sticky', name: 'Giấy nhớ' },
+  { key: 'polaroid', name: 'Ảnh polaroid' },
+  { key: 'index', name: 'Thẻ ghi chú' },
+  { key: 'blueprint', name: 'Bản vẽ kỹ thuật' },
+  { key: 'chalk', name: 'Bảng đen' },
+  { key: 'folder', name: 'Bìa hồ sơ' },
+  { key: 'library', name: 'Thẻ thư viện' },
+  { key: 'terminal', name: 'Màn hình code' },
+];
+export const lookOf = (p, n) => (LOOKS.some((l) => l.key === p.look) ? p.look : LOOKS[(n ?? hashOf(p.id || p.title)) % LOOKS.length].key);
 const hashOf = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
 export const frameOf = (a) => (FRAMES.some((f) => f.key === a.frame) ? a.frame : FRAMES[hashOf(a.id || a.title) % FRAMES.length].key);
 export const ACH_BLANK = () => ({ title: '', date: String(new Date().getFullYear()), category: 'Học tập', featured: false, desc: '', image: '', frame: 'gold' });
@@ -44,12 +58,14 @@ export const PROJ_FIELDS = [
   { key: 'year', label: 'Năm', type: 'number' },
   { key: 'tags', label: 'Công nghệ', type: 'tags' },
   { key: 'desc.vi', label: 'Mô tả', type: 'area' },
+  { key: 'thumb', label: 'Ảnh minh hoạ nhỏ (hiện trong thẻ dự án)', type: 'image' },
+  { key: 'look', label: 'Kiểu trình bày', type: 'look' },
   { key: 'repo', label: 'Link mã nguồn (GitHub)', type: 'url' },
   { key: 'demo', label: 'Link chạy thử', type: 'url' },
   { key: 'featured', label: 'Nổi bật (hiện ở mục "Bài kiểm tra" trang chủ, tối đa 3)', type: 'check' },
 ];
-export const PROJ_BLANK = () => ({ title: '', category: 'WEB', year: new Date().getFullYear(), hue: Math.floor(Math.random() * 360), featured: false, pinned: false, desc: { vi: '', en: '' }, tags: [], repo: '', demo: '', images: [] });
-export const PROJ_PREVIEW = (p) => ({ img: null, title: p.title, sub: `${p.category} · ${p.year}${p.featured || p.pinned ? ' · ★' : ''} · ${(p.tags || []).slice(0, 3).join(', ')}` });
+export const PROJ_BLANK = () => ({ title: '', category: 'WEB', year: new Date().getFullYear(), hue: Math.floor(Math.random() * 360), featured: false, pinned: false, desc: { vi: '', en: '' }, tags: [], repo: '', demo: '', images: [], thumb: '', look: 'exam' });
+export const PROJ_PREVIEW = (p) => ({ img: p.thumb ? asset(p.thumb) : null, title: p.title, sub: `${p.category} · ${p.year}${p.featured || p.pinned ? ' · ★' : ''} · ${(p.tags || []).slice(0, 3).join(', ')}` });
 
 export const SKILL_FIELDS = [
   { key: 'name', label: 'Nhóm kỹ năng (vd: Languages)', type: 'text', required: true },

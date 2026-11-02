@@ -2,27 +2,71 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { profile } from '../../data/profile';
-import skills from '../../data/skills.json';
-import intro from '../../data/intro.json';
+import cvSections from '../../data/cvsections.json';
+import cvInfo from '../../data/cvinfo.json';
 import { asset } from '../../utils/asset';
 import { buzz, thock, whoosh } from '../sound';
 import { vi } from '../Diary';
-import { ListEditor, useEditable } from '../Editor';
+import { DocEditor, ListEditor, useEditable, useEditableDoc } from '../Editor';
 import { GH_MODE, EDIT_MODE, uploadCv } from '../../admin/adminApi';
 
-const CV_FIELDS = [
-  { key: 'name', label: 'Tên mục (vd: Học vấn, Kinh nghiệm)', type: 'text', required: true },
-  { key: 'desc', label: 'Nội dung (mỗi dòng một ý, bắt đầu bằng dấu -)', type: 'area' },
-];
-const CV_BLANK = () => ({ name: '', desc: '- ' });
-const CV_PREVIEW = (x) => ({ title: x.name, sub: (x.desc || '').split('\n')[0] });
 import BrandIcon, { BRAND_COLOR } from '../Brand';
+
+const CV_FIELDS = [
+  { key: 'name', label: 'Tên mục (vd: Học vấn, Kỹ năng)', type: 'text', required: true },
+  { key: 'desc', label: 'Nội dung: mỗi dòng một ý. Viết "cột trái | nội dung" để chia 2 cột (vd: 2022 - 2027 | Tên trường), bắt đầu bằng "- " để gạch đầu dòng, **chữ đậm**', type: 'area' },
+];
+const CV_BLANK = () => ({ name: '', desc: '' });
+const CV_PREVIEW = (x) => ({ title: x.name, sub: (x.desc || '').split('\n')[0].replace(/\*\*/g, '') });
+const INFO_FIELDS = [
+  { key: 'photo', label: 'Ảnh trong CV', type: 'image' },
+  { key: 'name', label: 'Họ và tên', type: 'text', required: true },
+  { key: 'role', label: 'Vị trí / chức danh', type: 'text' },
+  { key: 'birth', label: 'Ngày sinh', type: 'text' },
+  { key: 'gender', label: 'Giới tính', type: 'text' },
+  { key: 'phone', label: 'Số điện thoại', type: 'text' },
+  { key: 'email', label: 'Email', type: 'text' },
+  { key: 'address', label: 'Địa chỉ', type: 'text' },
+  { key: 'website', label: 'Website', type: 'url' },
+];
+const INFO_ROWS = [['birth', 'Ngày sinh'], ['gender', 'Giới tính'], ['phone', 'Số điện thoại'], ['email', 'Email'], ['address', 'Địa chỉ'], ['website', 'Website']];
+
+/* chữ đậm **…** và đường link */
+const rich = (t) => String(t).split(/(\*\*[^*]+\*\*|https?:\/\/\S+)/g).map((x, k) => (
+  /^\*\*/.test(x) ? <b key={k}>{x.slice(2, -2)}</b> : /^https?:\/\//.test(x) ? <a key={k} href={x} target="_blank" rel="noreferrer">{x}</a> : x));
+
+/* một mục CV: dòng "trái | phải" thành 2 cột, "- " thành gạch đầu dòng */
+function CvSection({ x }) {
+  const lines = String(x.desc || '').split('\n').filter((l) => l.trim() !== '');
+  const two = lines.some((l) => l.includes('|'));
+  return (
+    <section className="cvx-sec">
+      <h3>{x.name}</h3>
+      <div className="cvx-rows">
+        {lines.map((l, k) => {
+          const m = l.match(/^([^|]*)\|(.*)$/);
+          const body = (m ? m[2] : l).trim();
+          const li = /^[-•]\s*/.test(body);
+          return (
+            <div key={k} className={`cvx-row ${two ? 'two' : ''}`}>
+              {two && <span className="cvx-l">{m ? m[1].trim() : ''}</span>}
+              <span className={`cvx-r ${li ? 'li' : ''}`}>{rich(li ? body.replace(/^[-•]\s*/, '') : body)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 export function CvPage() {
   const ref = useRef(null);
-  const ed = useEditable(intro, 'intro');
+  const ed = useEditable(cvSections, 'cvsections');
+  const info = useEditableDoc(cvInfo, 'cvinfo');
+  const [panel, setPanel] = useState(false);
   const [pdf, setPdf] = useState(null);
   const [pdfMsg, setPdfMsg] = useState('');
+  const d = info.doc || {};
   const pickPdf = async (e) => {
     const file = e.target.files?.[0]; e.target.value = '';
     if (!file) return;
@@ -39,24 +83,32 @@ export function CvPage() {
     return () => tl.kill();
   }, []);
   return (
-    <div className="cvwin" ref={ref}>
+    <div className="cvwin cvx" ref={ref}>
       <div className="printer"><div className="printer-slot"><span className="printhead" /></div><div className="printer-face"><span>DOT-MATRIX 24</span><i className="printer-led" /></div></div>
       <div className="cv-feed">
         <div className="cv-paper">
           <div className="holes l" /><div className="holes r" />
-          <h2>SƠ YẾU LÝ LỊCH</h2>
-          <p className="cv-name">VŨ ĐÌNH ĐẠT</p>
-          <p className="cv-role">{profile.role.vi} · {vi(profile.location)}</p>
-          <hr />
-          {ed.items.map((x) => <div key={x.id} className="cv-block"><b>{x.name.toUpperCase()}</b><pre>{x.desc}</pre></div>)}
-          <div className="cv-block"><b>KỸ NĂNG</b><pre>{skills.map((s) => `- ${s.name}: ${s.desc}`).join('\n')}</pre></div>
-          <div className="cv-block"><b>LIÊN HỆ</b><pre>{`- Email: ${profile.email}\n- GitHub: github.com/Vudinhdat02`}</pre></div>
-          <a className="cv-btn" href={pdf || asset('/cv.pdf')} target="_blank" rel="noreferrer">Mở CV đầy đủ (PDF)</a>
+          <header className="cvx-head">
+            {d.photo && <img className="cvx-photo" src={asset(d.photo)} alt={d.name || ''} />}
+            <div className="cvx-id">
+              <h2 className="cvx-name">{d.name}</h2>
+              {d.role && <p className="cvx-role">{d.role}</p>}
+              <dl className="cvx-info">
+                {INFO_ROWS.filter(([k]) => d[k]).map(([k, label]) => (
+                  <div key={k}><dt>{label}:</dt><dd>{k === 'website' ? <a href={d[k]} target="_blank" rel="noreferrer">{d[k]}</a> : k === 'email' ? <a href={`mailto:${d[k]}`}>{d[k]}</a> : d[k]}</dd></div>
+                ))}
+              </dl>
+            </div>
+            {info.canEdit && <button className="cvx-edit" onClick={() => { setPanel(true); thock(1.2); }}>✎ Sửa thông tin</button>}
+          </header>
+          {ed.items.map((x) => <CvSection key={x.id || x.name} x={x} />)}
+          <a className="cv-btn" href={pdf || asset('/cv.pdf')} target="_blank" rel="noreferrer">Mở CV bản PDF</a>
           {EDIT_MODE && (GH_MODE || import.meta.env.DEV) && (
             <label className="cv-pdf-up">📄 Thay file CV (PDF)<input type="file" accept="application/pdf,.pdf" onChange={pickPdf} hidden />{pdfMsg && <small>{pdfMsg}</small>}</label>
           )}
         </div>
       </div>
+      {panel && <DocEditor ed={info} title="Sửa thông tin CV" fields={INFO_FIELDS} onClose={() => setPanel(false)} />}
       {ed.canEdit && <ListEditor ed={ed} label="mục CV" fields={CV_FIELDS} blank={CV_BLANK} preview={CV_PREVIEW} />}
     </div>
   );
