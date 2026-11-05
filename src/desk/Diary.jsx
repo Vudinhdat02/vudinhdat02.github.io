@@ -256,7 +256,7 @@ function useSwing(root, scroller, deps) {
 /* ================================================================
  *  Trang chủ: một dây phơi, vài bài mới nhất
  * ================================================================ */
-export function DiaryHome({ limit = 5, onOpenAll }) {
+export function DiaryHome({ limit = 8, perRow = 4, onOpenAll }) {
   const { posts, openNew } = useDiary();
   const root = useRef(null);
   const shown = posts.slice(0, limit);
@@ -268,9 +268,11 @@ export function DiaryHome({ limit = 5, onOpenAll }) {
       const q = gsap.utils.selector(root);
       const st = { refreshPriority: -1 };
       gsap.fromTo(q('.dy-title'), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', ease: 'none', scrollTrigger: { trigger: q('.dy-title')[0], start: 'top 85%', end: 'top 55%', scrub: 1, ...st } });
-      const rope = q('.rope path')[0];
-      if (rope) { const len = rope.getTotalLength(); gsap.fromTo(rope, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, ease: 'none', scrollTrigger: { trigger: q('.dy-line')[0], start: 'top 90%', end: 'top 45%', scrub: 1, ...st } }); }
-      gsap.from(q('.hang'), { y: -200, opacity: 0, rotate: () => gsap.utils.random(-30, 30), duration: 1.3, ease: 'elastic.out(1, 0.4)', stagger: 0.12, scrollTrigger: { trigger: q('.dy-line')[0], start: 'top 72%', toggleActions: 'play none none reverse', ...st } });
+      q('.dy-line').forEach((line) => {
+        const rope = line.querySelector('.rope path');
+        if (rope) { const len = rope.getTotalLength(); gsap.fromTo(rope, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, ease: 'none', scrollTrigger: { trigger: line, start: 'top 90%', end: 'top 45%', scrub: 1, ...st } }); }
+        gsap.from(line.querySelectorAll('.hang'), { y: -200, opacity: 0, rotate: () => gsap.utils.random(-30, 30), duration: 1.3, ease: 'elastic.out(1, 0.4)', stagger: 0.12, scrollTrigger: { trigger: line, start: 'top 72%', toggleActions: 'play none none reverse', ...st } });
+      });
       gsap.from(q('.dy-more'), { scale: 0, rotate: -20, duration: 0.6, ease: 'back.out(2)', scrollTrigger: { trigger: q('.dy-more')[0], start: 'top 90%', ...st } });
     }, root);
     ScrollTrigger.refresh();
@@ -283,10 +285,12 @@ export function DiaryHome({ limit = 5, onOpenAll }) {
         <p className="dy-sub">Vài tấm mới nhất. Bấm vào ảnh để mở sổ, bấm ♡ để thả tim.</p>
         {CAN_WRITE && <button className="dy-write" onClick={openNew}>✍ Viết nhật ký hôm nay</button>}
       </header>
-      <div className="dy-line">
-        <svg className="rope" viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 10 Q 500 70 1000 10" /></svg>
-        <div className="dy-cards">{shown.map((p, i) => <Polaroid key={p.id || i} p={p} i={i} />)}</div>
-      </div>
+      {Array.from({ length: Math.ceil(shown.length / perRow) || 1 }, (_, r) => (
+        <div className="dy-line" key={r}>
+          <svg className="rope" viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true"><path d={r % 2 ? 'M0 14 Q 500 62 1000 6' : 'M0 10 Q 500 70 1000 10'} /></svg>
+          <div className="dy-cards">{shown.slice(r * perRow, (r + 1) * perRow).map((p, j) => <Polaroid key={p.id || r * perRow + j} p={p} i={r * perRow + j} />)}</div>
+        </div>
+      ))}
       <div className="dy-more-row"><button className="dy-more" onClick={(e) => onOpenAll(e.currentTarget.getBoundingClientRect())}>Mở cả cuốn nhật ký ({posts.length} trang) →</button></div>
     </section>
   );

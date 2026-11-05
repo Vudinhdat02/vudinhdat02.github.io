@@ -426,7 +426,7 @@ function HomeView({ onNav, onLightbox, data }) {
       </section></div>
 
       {/* ================= NHẬT KÝ ================= */}
-      <DiaryHome limit={5} onOpenAll={() => onNav('nhat-ky')} />
+      <DiaryHome limit={8} perRow={4} onOpenAll={() => onNav('nhat-ky')} />
 
       {/* ================= THẺ MỤC LỤC ================= */}
       <section className="more" id="muc-them">
