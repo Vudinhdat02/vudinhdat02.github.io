@@ -7,7 +7,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { thock } from './sound';
+import { getVolume, setVolume, thock } from './sound';
 
 export default function TopBar({ sections, active, onGo, onBrand, onSearch, night, onNight, mute, onMute, canWrite, onWrite, onAdmin }) {
   const bar = useRef(null);
@@ -77,7 +77,7 @@ export default function TopBar({ sections, active, onGo, onBrand, onSearch, nigh
             <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 28h14M11 28l4-11 6-6" /><path className="shade" d="M17 6l9 9-3 2-8-8z" /><circle cx="15" cy="17" r="1.6" /></svg>
           </button>
           <TextSize />
-          <button className="tb-tool" onClick={onMute} title={mute ? 'Bật âm thanh' : 'Tắt âm thanh'}>{mute ? '🔇' : '🔊'}</button>
+          <Volume mute={mute} onMute={onMute} />
           {canWrite && <button className="tb-write" onClick={onWrite}>✍ Viết nhật ký</button>}
           <button className="tb-burger" onClick={() => { setOpen(!open); thock(); }} aria-expanded={open} aria-label="Mở mục lục"><i /><i /><i /></button>
         </div>
@@ -102,6 +102,42 @@ const setFs = (z) => { if (z === 1) document.documentElement.style.removePropert
 const applySize = (z) => { setFs(z); requestAnimationFrame(() => ScrollTrigger.refresh()); };
 export const initTextSize = () => { try { const z = +localStorage.getItem('desk.zoom'); if (SIZES.includes(z)) setFs(z); } catch { /* bỏ qua */ } };
 initTextSize();
+
+/* nút âm thanh: bấm mở bảng chỉnh âm lượng + tắt tiếng */
+function Volume({ mute, onMute }) {
+  const [v, setV] = useState(getVolume);
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const off = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener('pointerdown', off);
+    return () => document.removeEventListener('pointerdown', off);
+  }, [open]);
+  const last = useRef(0);
+  const change = (x) => {
+    setV(x); setVolume(x);
+    if (mute && x > 0) onMute();
+    const now = performance.now(); if (now - last.current > 120) { last.current = now; thock(1.3); }
+  };
+  const ic = mute || v === 0 ? '🔇' : v < 0.4 ? '🔈' : v < 0.75 ? '🔉' : '🔊';
+  return (
+    <div className="tz" ref={box}>
+      <button className={`tb-tool ${open ? 'on' : ''}`} onClick={() => { setOpen(!open); thock(); }} title="Âm thanh" aria-label="Âm thanh" aria-expanded={open}>{ic}</button>
+      {open && (
+        <div className="tz-pop vol-pop" role="dialog" aria-label="Chỉnh âm lượng">
+          <b>Âm lượng</b>
+          <div className="vol-row">
+            <span aria-hidden="true">🔈</span>
+            <input type="range" min="0" max="1" step="0.05" value={mute ? 0 : v} onChange={(e) => change(+e.target.value)} aria-label="Âm lượng" style={{ '--p': `${(mute ? 0 : v) * 100}%` }} />
+            <span className="tz-val">{mute ? 0 : Math.round(v * 100)}%</span>
+          </div>
+          <button className="tz-reset" onClick={() => { onMute(); if (mute) thock(1.3); }}>{mute ? '🔊 Bật âm thanh' : '🔇 Tắt tiếng'}</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function TextSize() {
   const [z, setZ] = useState(() => { try { const v = +localStorage.getItem('desk.zoom'); return SIZES.includes(v) ? v : 1; } catch { return 1; } });

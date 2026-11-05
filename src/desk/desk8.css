@@ -274,3 +274,11 @@
   .ob-frame { padding: 12px; }
   .ob-frame img { max-width: 100%; max-height: 50svh; }
 }
+/* bảng chỉnh âm lượng */
+.vol-pop { width: 240px; }
+.vol-row { display: flex; align-items: center; gap: 8px; }
+.vol-row .tz-val { min-width: 42px; text-align: right; font: 700 13px 'Be Vietnam Pro', sans-serif; color: var(--ink); }
+.vol-row input { flex: 1; height: 6px; border-radius: 999px; appearance: none; -webkit-appearance: none; background: linear-gradient(90deg, var(--ink) var(--p), #e1e6f0 var(--p)); cursor: pointer; }
+.vol-row input::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px var(--ink), 0 2px 6px rgba(0, 0, 0, 0.2); }
+.vol-row input::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px var(--ink), 0 2px 6px rgba(0, 0, 0, 0.2); }
+.vol-pop .tz-reset { display: block; width: 100%; margin-top: 12px; }

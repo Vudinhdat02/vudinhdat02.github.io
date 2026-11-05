@@ -9,6 +9,17 @@ let muted = false;
 export const setMuted = (m) => { muted = m; };
 export const isMuted = () => muted;
 
+/* âm lượng người xem chọn (0 → 1), nhớ trong trình duyệt */
+let vol = (() => { try { const v = parseFloat(localStorage.getItem('desk.vol')); return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.8; } catch { return 0.8; } })();
+const BOOST = 5;
+let volNode = null;
+export const getVolume = () => vol;
+export function setVolume(v) {
+  vol = Math.min(1, Math.max(0, v));
+  try { localStorage.setItem('desk.vol', String(vol)); } catch { /* bỏ qua */ }
+  if (volNode) volNode.gain.setTargetAtTime(vol * BOOST, volNode.context.currentTime, 0.02);
+}
+
 function ac() {
   if (muted) return null;
   try {
@@ -18,15 +29,16 @@ function ac() {
   } catch { return null; }
 }
 
-/* mọi âm thanh đi qua một lớp lọc chung: cắt bớt tiếng chói ở dải cao, nén nhẹ cho êm */
+/* mọi âm thanh đi qua một lớp lọc chung: cắt bớt tiếng chói ở dải cao, khuếch đại theo âm lượng,
+   rồi qua bộ chặn đỉnh để to mà không bị rè */
 let master = null;
 function out(c) {
   if (master && master.context === c) return master;
   const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = 0.5;
-  const comp = c.createDynamicsCompressor(); comp.threshold.value = -24; comp.ratio.value = 4;
-  const g = c.createGain(); g.gain.value = 0.8;
-  lp.connect(comp).connect(g).connect(c.destination);
-  master = lp; return lp;
+  const g = c.createGain(); g.gain.value = vol * BOOST;
+  const lim = c.createDynamicsCompressor(); lim.threshold.value = -4; lim.knee.value = 2; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+  lp.connect(g).connect(lim).connect(c.destination);
+  master = lp; volNode = g; return lp;
 }
 
 /* tiếng xào xạc ngắn (giấy, bút chì), có nhập và tắt mềm để không bị "tạch" */
@@ -62,8 +74,8 @@ export function thock(pitch = 1) {
   if (t - lastTap < 0.07) return;
   lastTap = t;
   const p = Math.min(1.6, Math.max(0.7, pitch)) * (0.95 + Math.random() * 0.1);
-  noise(c, 0.028, 1500 * p, 0.8, 0.07, t, 'bandpass');
-  tone(c, 'sine', 520 * p, 380 * p, 0.06, 0.035, t);
+  noise(c, 0.028, 1500 * p, 0.8, 0.16, t, 'bandpass');
+  tone(c, 'sine', 520 * p, 380 * p, 0.06, 0.08, t);
 }
 
 /** Đóng dấu / gập sách: tiếng bịch êm. */
@@ -78,15 +90,15 @@ export function thud() {
 export function buzz() {
   const c = ac(); if (!c) return;
   const t = c.currentTime;
-  for (let i = 0; i < 3; i++) noise(c, 0.05, 2400 + Math.random() * 600, 1.2, 0.035, t + i * 0.045, 'bandpass');
+  for (let i = 0; i < 3; i++) noise(c, 0.05, 2400 + Math.random() * 600, 1.2, 0.08, t + i * 0.045, 'bandpass');
 }
 
 /** Lật trang giấy. */
 export function whoosh() {
   const c = ac(); if (!c) return;
   const t = c.currentTime;
-  noise(c, 0.32, 500, 0.6, 0.11, t, 'bandpass', 2200);
-  noise(c, 0.08, 1800, 0.8, 0.05, t + 0.24, 'bandpass');
+  noise(c, 0.32, 500, 0.6, 0.18, t, 'bandpass', 2200);
+  noise(c, 0.08, 1800, 0.8, 0.08, t + 0.24, 'bandpass');
 }
 
 /** Mở nắp bút / bật nút: tiếng "póc" nhỏ. */
@@ -125,7 +137,7 @@ export function rain(on) {
     }
     const src = c.createBufferSource(); src.buffer = buf; src.loop = true;
     const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
-    const g = c.createGain(); g.gain.value = 0; g.gain.setTargetAtTime(0.5, c.currentTime, 0.8);
+    const g = c.createGain(); g.gain.value = 0; g.gain.setTargetAtTime(0.5 * Math.max(0.15, vol) * 1.6, c.currentTime, 0.8);
     src.connect(lp).connect(g).connect(c.destination); src.start();
     rainNode = { src, g };
   } catch { /* trình duyệt không hỗ trợ */ }
