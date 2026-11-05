@@ -32,6 +32,7 @@ import './desk8.css';
 import './desk9.css';
 import './desk10.css';
 import './desk11.css';
+import './desk12.css';
 
 gsap.registerPlugin(ScrollTrigger);
 const vi = (v) => (typeof v === 'object' && v ? v.vi || v.en : v);

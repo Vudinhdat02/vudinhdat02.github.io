@@ -20,6 +20,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import blogData from '../data/blog.json';
 import { EDIT_MODE, newId, removeUpload, uploadImage, useEditableList } from '../admin/adminApi';
 import { asset } from '../utils/asset';
+import { looksLikeImage, toWebImage } from '../utils/image';
 import { thock, whoosh, thud, pop, shutter } from './sound';
 
 gsap.registerPlugin(Flip, ScrollTrigger);
@@ -36,6 +37,49 @@ const longDate = (s) => { const d = parseDate(s); return d ? `${WEEKDAY[d.getDay
 const monthKey = (s) => { const d = parseDate(s); return d ? `Tháng ${d.getMonth() + 1} · ${d.getFullYear()}` : 'Kỷ niệm'; };
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const LIKE_KEY = 'desk.likes';
+
+/* ---------- kiểu trình bày một trang nhật ký (chọn khi viết bài) ---------- */
+export const DY_LAYOUTS = [
+  { key: 'polaroid', name: 'Ảnh lớn', ic: '🖼' },
+  { key: 'grid', name: 'Lưới ảnh', ic: '▦' },
+  { key: 'stack', name: 'Chồng ảnh', ic: '🗂' },
+  { key: 'film', name: 'Cuộn phim', ic: '🎞' },
+  { key: 'scrap', name: 'Sổ dán ảnh', ic: '📎' },
+  { key: 'full', name: 'Tràn trang', ic: '⬛' },
+];
+export const DY_FONTS = [
+  { key: 'hand', name: 'Viết tay', css: "'Patrick Hand', 'Comic Sans MS', cursive", fs: 1 },
+  { key: 'round', name: 'Bút bi', css: "'Pangolin', 'Patrick Hand', cursive", fs: 0.95, g: 'Pangolin' },
+  { key: 'script', name: 'Thư pháp', css: "'Dancing Script', cursive", fs: 1.12, g: 'Dancing+Script:wght@500;700' },
+  { key: 'print', name: 'Chữ in', css: "'Be Vietnam Pro', system-ui, sans-serif", fs: 0.82 },
+  { key: 'classic', name: 'Cổ điển', css: "'Playfair Display', Georgia, serif", fs: 0.88 },
+  { key: 'type', name: 'Máy đánh chữ', css: "'JetBrains Mono', monospace", fs: 0.76 },
+];
+export const DY_COLORS = [
+  { key: 'ink', name: 'Mực xanh', c: '#24306a' },
+  { key: 'black', name: 'Mực đen', c: '#1f1f24' },
+  { key: 'red', name: 'Mực đỏ', c: '#c0392b' },
+  { key: 'green', name: 'Xanh lá', c: '#1e7a4c' },
+  { key: 'purple', name: 'Tím', c: '#6b3fa0' },
+  { key: 'brown', name: 'Nâu gỗ', c: '#8a5a2b' },
+  { key: 'pink', name: 'Hồng', c: '#d6457a' },
+];
+const pick = (list, k) => list.find((x) => x.key === k) || list[0];
+const loaded = new Set();
+/* tải thêm phông chữ (chỉ khi có bài dùng tới) */
+export function ensureFont(key) {
+  const f = pick(DY_FONTS, key);
+  if (!f.g || loaded.has(f.g)) return;
+  loaded.add(f.g);
+  const l = document.createElement('link'); l.rel = 'stylesheet';
+  l.href = `https://fonts.googleapis.com/css2?family=${f.g}&display=swap`;
+  document.head.appendChild(l);
+}
+/* biến CSS cho chữ của một bài */
+export function lookVars(look) {
+  const f = pick(DY_FONTS, look?.font), c = pick(DY_COLORS, look?.color);
+  return { '--dy-font': f.css, '--dy-fs': f.fs, '--dy-color': c.c };
+}
 
 function groupByMonth(list) {
   const groups = [];
@@ -79,7 +123,7 @@ export function DiaryProvider({ lenis, children }) {
   const save = async (f) => {
     if (DEMO && !EDIT_MODE) {
       const images = f.images.map((im) => im.url || URL.createObjectURL(im.file));
-      const entry = { id: f.id || newId(), title: f.title, date: f.date, text: f.text, images };
+      const entry = { id: f.id || newId(), title: f.title, date: f.date, text: f.text, images, look: f.look };
       const base = [...posts];
       if (f.index >= 0) base[f.index] = entry; else base.unshift(entry);
       setLocal(base);
@@ -88,7 +132,7 @@ export function DiaryProvider({ lenis, children }) {
     const images = [];
     for (const im of f.images) images.push(im.file ? await uploadImage(im.file, f.title || 'nhat-ky') : im.url);
     const prev = f.index >= 0 ? posts[f.index] : null;
-    const entry = { ...(prev || {}), id: prev?.id || newId(), title: f.title, date: f.date, text: f.text, images };
+    const entry = { ...(prev || {}), id: prev?.id || newId(), title: f.title, date: f.date, text: f.text, images, look: f.look };
     delete entry.ratios;
     const next = prev ? posts.map((x, i) => (i === f.index ? entry : x)) : [entry, ...posts];
     if (!(await commit(next))) throw new Error(status.error || 'Chưa lưu được, thử lại nhé.');
@@ -105,10 +149,10 @@ export function DiaryProvider({ lenis, children }) {
     posts, likes, toggleLike, lenis,
     openBook: (i, from) => setBook({ i, k: 0, from }),
     openPost: (id) => { const i = posts.findIndex((p) => p.id === id); if (i >= 0) setBook({ i, k: 0 }); },
-    openNew: () => setForm({ index: -1, title: '', date: today(), text: '', images: [] }),
+    openNew: () => setForm({ index: -1, title: '', date: today(), text: '', images: [], look: { layout: 'polaroid', font: 'hand', color: 'ink' } }),
   }), [posts, likes, toggleLike]);
 
-  const edit = () => { const p = posts[book.i]; setForm({ index: book.i, id: p.id, title: vi(p.title), date: vi(p.date), text: vi(p.text), images: (p.images || []).map((url) => ({ url })) }); };
+  const edit = () => { const p = posts[book.i]; setForm({ index: book.i, id: p.id, title: vi(p.title), date: vi(p.date), text: vi(p.text), images: (p.images || []).map((url) => ({ url })), look: { layout: 'polaroid', font: 'hand', color: 'ink', ...(p.look || {}) } }); };
 
   return (
     <Ctx.Provider value={api}>
@@ -156,8 +200,9 @@ export function Polaroid({ p, i, n = 0, peg = true, big = false }) {
     gsap.to(card.current, { '--rx': `${(0.5 - py) * 16}deg`, '--ry': `${(px - 0.5) * 18}deg`, '--px': `${px * 100}%`, '--py': `${py * 100}%`, duration: 0.3, ease: 'power2.out' });
   };
   const untilt = () => gsap.to(card.current, { '--rx': '0deg', '--ry': '0deg', duration: 0.8, ease: 'elastic.out(1, 0.4)' });
+  useEffect(() => { if (p.look?.font) ensureFont(p.look.font); }, [p.look?.font]);
   return (
-    <div className={`hang ${big ? 'big' : ''}`} data-flip-id={p.id} style={{ '--tilt': `${((i * 53) % 9) - 4}deg` }}>
+    <div className={`hang ${big ? 'big' : ''} ${p.look ? 'dy-styled' : ''}`} data-flip-id={p.id} style={{ '--tilt': `${((i * 53) % 9) - 4}deg`, ...(p.look ? lookVars(p.look) : {}) }}>
       {peg && <span className="peg" />}
       <div ref={card} className="pcard" role="button" tabIndex={0} onPointerMove={tilt} onPointerLeave={untilt}
         onClick={(e) => { thock(1.2); openBook(i, e.currentTarget.querySelector('.pc-photo').getBoundingClientRect()); }}
@@ -329,7 +374,9 @@ export function DiaryBoard() {
 function Book({ posts, at, setAt, onClose, likes, toggleLike, onEdit, onDelete }) {
   const ref = useRef(null);
   const [sure, setSure] = useState(false);
+  const [zoom, setZoom] = useState(null);
   const post = posts[at.i];
+  useEffect(() => { if (post.look?.font) ensureFont(post.look.font); }, [post.look?.font]);
   const imgs = post.images || [];
   const k = at.k;
   const liked = likes.includes(post.id);
@@ -346,18 +393,18 @@ function Book({ posts, at, setAt, onClose, likes, toggleLike, onEdit, onDelete }
     tl.fromTo(q('.bk-cover'), { rotateY: 0 }, { rotateY: -178, duration: 0.9, ease: 'power3.inOut' }, 0.4)
       .set(q('.bk-cover'), { display: 'none' })
       .from(q('.bk-right .ln'), { clipPath: 'inset(0 100% 0 0)', stagger: 0.06, duration: 0.35, ease: 'none' }, 0.85)
-      .from(q('.bk-photo'), { y: -40, rotate: 12, opacity: 0, duration: 0.6, ease: 'back.out(1.6)' }, 0.75);
+      .from(q('.bk-left > *'), { y: -40, rotate: 8, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'back.out(1.6)' }, 0.75);
     return () => tl.kill();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useLayoutEffect(() => {
-    const el = ref.current?.querySelector('.bk-photo img');
+    const el = ref.current?.querySelector('.bk-photo img, .bk-full img, .bk-sk.top img');
     if (el) gsap.fromTo(el, { opacity: 0, x: 30, rotate: 2 }, { opacity: 1, x: 0, rotate: 0, duration: 0.45, ease: 'power3.out' });
   }, [k]);
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape') close();
+      if (e.key === 'Escape') { if (zoom) setZoom(null); else close(); }
       if (e.key === 'ArrowRight' && imgs.length > 1) setAt((b) => ({ ...b, k: (b.k + 1) % imgs.length }));
       if (e.key === 'ArrowLeft' && imgs.length > 1) setAt((b) => ({ ...b, k: (b.k - 1 + imgs.length) % imgs.length }));
       if (e.key === 'PageDown' || e.key === ']') turn(1);
@@ -384,23 +431,13 @@ function Book({ posts, at, setAt, onClose, likes, toggleLike, onEdit, onDelete }
 
   const close = () => gsap.to(ref.current.querySelector('.bk'), { y: 80, scale: 0.85, opacity: 0, duration: 0.25, ease: 'power2.in', onComplete: onClose });
   const lines = vi(post.text).split('\n');
+  const layout = pick(DY_LAYOUTS, post.look?.layout).key;
   return (
     <div className="bk-wrap" ref={ref} role="dialog" aria-modal="true" aria-label={vi(post.title)}>
       <div className="bk-backdrop" onClick={close} />
-      <div className="bk">
-        <div className="bk-left">
-          {imgs.length ? (
-            <>
-              <div className="bk-photo"><span className="tape" /><img src={asset(imgs[k])} alt={vi(post.title)} /></div>
-              {imgs.length > 1 && (
-                <div className="bk-thumbs">
-                  <button onClick={() => setAt((b) => ({ ...b, k: (k - 1 + imgs.length) % imgs.length }))} aria-label="Ảnh trước">‹</button>
-                  {imgs.map((u, j) => <button key={u} className={j === k ? 'on' : ''} onClick={() => setAt((b) => ({ ...b, k: j }))}><img src={asset(u)} alt="" /></button>)}
-                  <button onClick={() => setAt((b) => ({ ...b, k: (k + 1) % imgs.length }))} aria-label="Ảnh sau">›</button>
-                </div>
-              )}
-            </>
-          ) : <div className="bk-doodle">✿ ✎ ☺</div>}
+      <div className={`bk ${post.look ? 'dy-styled' : ''}`} style={post.look ? lookVars(post.look) : undefined}>
+        <div className={`bk-left lay-${layout}`}>
+          <PhotoPage imgs={imgs} k={k} layout={layout} title={vi(post.title)} setK={(j) => setAt((b) => ({ ...b, k: j }))} onZoom={setZoom} />
         </div>
         <div className="bk-right">
           <p className="bk-date ln">{longDate(vi(post.date))}</p>
@@ -421,8 +458,70 @@ function Book({ posts, at, setAt, onClose, likes, toggleLike, onEdit, onDelete }
           <button onClick={() => turn(1)} disabled={at.i === posts.length - 1}>Trang cũ hơn ›</button>
         </div>
         <button className="bk-close" onClick={close} aria-label="Đóng">✕</button>
+        {zoom && <div className="bk-zoom" onClick={() => setZoom(null)}><img src={asset(zoom)} alt="" /></div>}
       </div>
     </div>
+  );
+}
+
+/* ---------- trang ảnh bên trái của cuốn sổ, theo kiểu trình bày đã chọn ---------- */
+function PhotoPage({ imgs, k, layout, title, setK, onZoom }) {
+  if (!imgs.length) return <div className="bk-doodle">✿ ✎ ☺</div>;
+  const thumbs = imgs.length > 1 && (
+    <div className="bk-thumbs">
+      <button onClick={() => setK((k - 1 + imgs.length) % imgs.length)} aria-label="Ảnh trước">‹</button>
+      {imgs.map((u, j) => <button key={u} className={j === k ? 'on' : ''} onClick={() => setK(j)}><img src={asset(u)} alt="" /></button>)}
+      <button onClick={() => setK((k + 1) % imgs.length)} aria-label="Ảnh sau">›</button>
+    </div>
+  );
+  if (layout === 'grid') {
+    return (
+      <div className={`bk-grid n${Math.min(imgs.length, 5)}`}>
+        {imgs.map((u, j) => <button key={u} className="bk-tile" onClick={() => onZoom(u)} style={{ '--d': `${j * 0.06}s` }}><img src={asset(u)} alt={j === 0 ? title : ''} /></button>)}
+      </div>
+    );
+  }
+  if (layout === 'stack') {
+    const order = imgs.map((_, j) => (k + j) % imgs.length).reverse();
+    return (
+      <div className="bk-stack" onClick={() => { thock(1.1); setK((k + 1) % imgs.length); }} role="button" tabIndex={0} aria-label="Ảnh tiếp theo">
+        {order.map((j, z) => <figure key={imgs[j]} className={`bk-sk ${j === k ? 'top' : ''}`} style={{ '--r': `${((j * 41) % 15) - 7}deg`, '--x': `${((j * 23) % 30) - 15}px`, zIndex: z }}><img src={asset(imgs[j])} alt={j === k ? title : ''} /></figure>)}
+        {imgs.length > 1 && <small className="bk-hint">bấm để xem ảnh tiếp · {k + 1}/{imgs.length}</small>}
+      </div>
+    );
+  }
+  if (layout === 'film') {
+    return (
+      <div className="bk-film">
+        {imgs.map((u, j) => <button key={u} className="bk-frame" onClick={() => onZoom(u)}><img src={asset(u)} alt={j === 0 ? title : ''} /><small>{String(j + 1).padStart(2, '0')}A</small></button>)}
+      </div>
+    );
+  }
+  if (layout === 'scrap') {
+    return (
+      <div className="bk-scrap">
+        {imgs.map((u, j) => (
+          <button key={u} className="bk-cut" onClick={() => onZoom(u)} style={{ '--r': `${((j * 37) % 13) - 6}deg` }}>
+            <span className="tape" /><img src={asset(u)} alt={j === 0 ? title : ''} />
+          </button>
+        ))}
+        <span className="bk-sticker s1" aria-hidden="true">★</span><span className="bk-sticker s2" aria-hidden="true">♥</span>
+      </div>
+    );
+  }
+  if (layout === 'full') {
+    return (
+      <>
+        <button className="bk-full" onClick={() => onZoom(imgs[k])}><img src={asset(imgs[k])} alt={title} /></button>
+        {thumbs}
+      </>
+    );
+  }
+  return (
+    <>
+      <div className="bk-photo"><span className="tape" /><img src={asset(imgs[k])} alt={title} /></div>
+      {thumbs}
+    </>
   );
 }
 
@@ -446,12 +545,22 @@ function Composer({ form: init, onClose, onSave }) {
     gsap.fromTo(ref.current.querySelector('.cp'), { y: 140, rotate: 4, opacity: 0 }, { y: 0, rotate: -0.6, opacity: 1, duration: 0.6, ease: 'back.out(1.3)' });
   }, []);
 
-  const addFiles = useCallback((files) => {
-    const imgs = [...files].filter((x) => x.type.startsWith('image/')).map((file) => ({ file }));
-    if (imgs.length) { setF((s) => ({ ...s, images: [...s.images, ...imgs] })); thock(1.3); }
+  const [reading, setReading] = useState(false);
+  const addFiles = useCallback(async (files) => {
+    const list = [...files].filter(looksLikeImage);
+    if (!list.length) { if (files.length) setErr('File bạn chọn không phải ảnh. Hãy chọn ảnh JPG, PNG, WEBP hoặc HEIC.'); return; }
+    setReading(true); setErr('');
+    const ok = [], bad = [];
+    for (const file of list) { try { ok.push({ file: await toWebImage(file) }); } catch (x) { bad.push(x.message); } }
+    setReading(false);
+    if (ok.length) { setF((s) => ({ ...s, images: [...s.images, ...ok] })); thock(1.3); }
+    if (bad.length) setErr(bad.join(' '));
   }, []);
+  useEffect(() => { DY_FONTS.forEach((x) => ensureFont(x.key)); }, []);
+  const look = f.look || { layout: 'polaroid', font: 'hand', color: 'ink' };
+  const setLook = (k, v) => { thock(1.4); setF((s) => ({ ...s, look: { ...look, ...(s.look || {}), [k]: v } })); };
   useEffect(() => {
-    const onPaste = (e) => addFiles(e.clipboardData?.files || []);
+    const onPaste = (e) => { const fl = [...(e.clipboardData?.files || [])]; if (fl.length) addFiles(fl); };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
   }, [addFiles]);
@@ -488,7 +597,7 @@ function Composer({ form: init, onClose, onSave }) {
       <div className="bk-backdrop" onClick={() => !busy && onClose()} />
       <form className={`cp ${drag ? 'drag' : ''}`} onSubmit={submit}
         onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
-        onDrop={(e) => { e.preventDefault(); setDrag(false); addFiles(e.dataTransfer.files); }}>
+        onDrop={(e) => { e.preventDefault(); setDrag(false); addFiles([...e.dataTransfer.files]); }}>
         <h3>{f.index >= 0 ? 'Sửa trang nhật ký' : 'Trang nhật ký mới'}</h3>
         <div className="cp-row">
           <label className="cp-f grow"><span>Tiêu đề</span><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Hôm nay mình đã…" autoFocus /></label>
@@ -506,16 +615,28 @@ function Composer({ form: init, onClose, onSave }) {
               {j === 0 && <figcaption>ảnh bìa</figcaption>}
             </figure>
           ))}
-          <label className="cp-add">
-            <input type="file" accept="image/*" multiple onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} hidden />
-            <b>＋</b><span>Thêm ảnh<br /><small>hoặc kéo thả, dán (Ctrl+V)</small></span>
+          <label className={`cp-add ${reading ? 'busy' : ''}`}>
+            <input type="file" accept="image/*,.heic,.heif" multiple onChange={(e) => { addFiles([...e.target.files]); e.target.value = ''; }} hidden />
+            {reading ? <><b className="cp-spin">◌</b><span>Đang mở ảnh…</span></> : <><b>＋</b><span>Thêm ảnh<br /><small>hoặc kéo thả, dán (Ctrl+V)</small></span></>}
           </label>
         </div>
-        <label className="cp-f"><span>Viết gì đó…</span><textarea rows={5} value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} placeholder="Kể lại một chút về ngày hôm nay" /></label>
+        <label className="cp-f"><span>Viết gì đó…</span><textarea rows={5} value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} placeholder="Kể lại một chút về ngày hôm nay" style={lookVars(look)} className="dy-styled-in" /></label>
+        <fieldset className="cp-look">
+          <legend>Kiểu trình bày khi khách xem</legend>
+          <div className="cp-lrow"><span>Bố cục ảnh</span>
+            <div className="cp-chips">{DY_LAYOUTS.map((x) => <button type="button" key={x.key} className={look.layout === x.key ? 'on' : ''} onClick={() => setLook('layout', x.key)} aria-pressed={look.layout === x.key}><i>{x.ic}</i>{x.name}</button>)}</div>
+          </div>
+          <div className="cp-lrow"><span>Kiểu chữ</span>
+            <div className="cp-chips">{DY_FONTS.map((x) => <button type="button" key={x.key} className={look.font === x.key ? 'on' : ''} onClick={() => setLook('font', x.key)} aria-pressed={look.font === x.key} style={{ fontFamily: x.css }}>{x.name}</button>)}</div>
+          </div>
+          <div className="cp-lrow"><span>Màu chữ</span>
+            <div className="cp-chips dots">{DY_COLORS.map((x) => <button type="button" key={x.key} className={look.color === x.key ? 'on' : ''} onClick={() => setLook('color', x.key)} aria-pressed={look.color === x.key} title={x.name} aria-label={x.name} style={{ '--c': x.c }} />)}</div>
+          </div>
+        </fieldset>
         {err && <p className="cp-err">{err}</p>}
         <div className="cp-actions">
           <button type="button" onClick={onClose} disabled={busy}>Huỷ</button>
-          <button className="cp-go" disabled={busy}>{busy ? 'Đang rửa ảnh…' : 'Chụp & kẹp lên dây 📸'}</button>
+          <button className="cp-go" disabled={busy || reading}>{busy ? 'Đang rửa ảnh…' : 'Chụp & kẹp lên dây 📸'}</button>
         </div>
       </form>
       {printed && (
