@@ -8,6 +8,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { thock } from './sound';
+import { GUEST_VIEW, IS_ADMIN, setGuestView } from '../admin/adminApi';
 
 export default function TopBar({ sections, active, onGo, onBrand, onSearch, night, onNight, mute, onMute, canWrite, onWrite, onAdmin }) {
   const bar = useRef(null);
@@ -77,6 +78,7 @@ export default function TopBar({ sections, active, onGo, onBrand, onSearch, nigh
             <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 28h14M11 28l4-11 6-6" /><path className="shade" d="M17 6l9 9-3 2-8-8z" /><circle cx="15" cy="17" r="1.6" /></svg>
           </button>
           <TextSize />
+          {IS_ADMIN && <GuestEye />}
           {canWrite && <button className="tb-write" onClick={onWrite}>✍ Viết nhật ký</button>}
           <button className="tb-burger" onClick={() => { setOpen(!open); thock(); }} aria-expanded={open} aria-label="Mở mục lục"><i /><i /><i /></button>
         </div>
@@ -101,6 +103,24 @@ const setFs = (z) => { if (z === 1) document.documentElement.style.removePropert
 const applySize = (z) => { setFs(z); requestAnimationFrame(() => ScrollTrigger.refresh()); };
 export const initTextSize = () => { try { const z = +localStorage.getItem('desk.zoom'); if (SIZES.includes(z)) setFs(z); } catch { /* bỏ qua */ } };
 initTextSize();
+
+/* nút con mắt: quản trị xem lại web như khách, bấm lần nữa để quay về */
+const EyeIc = ({ off }) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" className="eye-ic">
+    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />
+    {off && <path d="M4 4l16 16" />}
+  </svg>
+);
+function GuestEye() {
+  const go = () => { thock(1.3); setGuestView(!GUEST_VIEW); };
+  return GUEST_VIEW ? (
+    <button className="tb-tool tb-eye on" onClick={go} title="Trở lại chế độ quản trị" aria-label="Trở lại chế độ quản trị">
+      <EyeIc off /><span>Trở lại quản trị</span>
+    </button>
+  ) : (
+    <button className="tb-tool tb-eye" onClick={go} title="Xem web như khách" aria-label="Xem web như khách"><EyeIc /></button>
+  );
+}
 
 function TextSize() {
   const [z, setZ] = useState(() => { try { const v = +localStorage.getItem('desk.zoom'); return SIZES.includes(v) ? v : 1; } catch { return 1; } });

@@ -274,3 +274,9 @@
   .ob-frame { padding: 12px; }
   .ob-frame img { max-width: 100%; max-height: 50svh; }
 }
+/* nút con mắt: xem web như khách */
+.tb-eye { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.tb-eye .eye-ic { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tb-eye.on { width: auto; padding: 0 12px; background: var(--ink); color: #fff; font: 600 13px 'Be Vietnam Pro', sans-serif; white-space: nowrap; }
+.tb-eye.on .eye-ic { stroke: #fff; }
+@media (max-width: 760px) { .tb-eye.on span { display: none; } .tb-eye.on { padding: 0; } }

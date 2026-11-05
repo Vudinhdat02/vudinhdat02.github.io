@@ -33,8 +33,17 @@ const store = {
 
 /** true on the live site after the owner signed in */
 export const GH_MODE = !DEV && !!store.get();
+/** người quản trị (trên máy của bạn, hoặc trên web khi đã đăng nhập) */
+export const IS_ADMIN = DEV || GH_MODE;
+/** quản trị đang bật chế độ "xem như khách" (chỉ trong tab này) */
+export const GUEST_VIEW = IS_ADMIN && (() => { try { return sessionStorage.getItem('desk.guest') === '1'; } catch { return false; } })();
 /** show the editing tools (on your computer, or on the live site when signed in) */
-export const EDIT_MODE = DEV || GH_MODE;
+export const EDIT_MODE = IS_ADMIN && !GUEST_VIEW;
+/** bật / tắt chế độ xem như khách rồi tải lại trang ở đúng chỗ đang xem */
+export function setGuestView(on) {
+  try { if (on) sessionStorage.setItem('desk.guest', '1'); else sessionStorage.removeItem('desk.guest'); } catch { /* bỏ qua */ }
+  window.location.reload();
+}
 
 const ghHeaders = (token, json) => ({
   Accept: 'application/vnd.github+json',
