@@ -1,5 +1,19 @@
 [
   {
+    "id": "mw38hkbh6acw",
+    "title": "Săn mây Ba Vì",
+    "date": "04/11/2026",
+    "text": "Một chút gió và mây thư giãn",
+    "images": [
+      "/uploads/san-may-ba-vi-mw38hhbv.jpg"
+    ],
+    "look": {
+      "layout": "polaroid",
+      "font": "script",
+      "color": "ink"
+    }
+  },
+  {
     "id": "mvd8pc79zwbd",
     "title": "1 ngày vivu",
     "date": "18/10/2026",
