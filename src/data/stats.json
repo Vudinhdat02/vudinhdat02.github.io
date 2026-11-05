@@ -1,0 +1,26 @@
+[
+  {
+    "id": "st1gpa",
+    "value": "3.83",
+    "label": "GPA / 4.0",
+    "auto": ""
+  },
+  {
+    "id": "st2nam",
+    "value": "3+",
+    "label": "năm kinh nghiệm",
+    "auto": ""
+  },
+  {
+    "id": "st3tt",
+    "value": "",
+    "label": "giấy khen, thành tích",
+    "auto": "Số thành tích"
+  },
+  {
+    "id": "st4da",
+    "value": "",
+    "label": "dự án mã nguồn mở",
+    "auto": "Số dự án"
+  }
+]

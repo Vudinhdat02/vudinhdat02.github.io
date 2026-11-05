@@ -9,16 +9,9 @@ let muted = false;
 export const setMuted = (m) => { muted = m; };
 export const isMuted = () => muted;
 
-/* âm lượng người xem chọn (0 → 1), nhớ trong trình duyệt */
-let vol = (() => { try { const v = parseFloat(localStorage.getItem('desk.vol')); return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.8; } catch { return 0.8; } })();
+/* âm lượng cố định, luôn bật */
+const vol = 1;
 const BOOST = 5;
-let volNode = null;
-export const getVolume = () => vol;
-export function setVolume(v) {
-  vol = Math.min(1, Math.max(0, v));
-  try { localStorage.setItem('desk.vol', String(vol)); } catch { /* bỏ qua */ }
-  if (volNode) volNode.gain.setTargetAtTime(vol * BOOST, volNode.context.currentTime, 0.02);
-}
 
 function ac() {
   if (muted) return null;
@@ -38,7 +31,7 @@ function out(c) {
   const g = c.createGain(); g.gain.value = vol * BOOST;
   const lim = c.createDynamicsCompressor(); lim.threshold.value = -4; lim.knee.value = 2; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
   lp.connect(g).connect(lim).connect(c.destination);
-  master = lp; volNode = g; return lp;
+  master = lp; return lp;
 }
 
 /* tiếng xào xạc ngắn (giấy, bút chì), có nhập và tắt mềm để không bị "tạch" */

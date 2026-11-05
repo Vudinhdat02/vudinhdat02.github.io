@@ -9,11 +9,12 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { profile } from '../data/profile';
 import projectsData from '../data/projects.json';
 import achievementsData from '../data/achievements.json';
+import statsData from '../data/stats.json';
 import skillsData from '../data/skills.json';
 import introData from '../data/intro.json';
 import aboutData from '../data/about.json';
 import { DocEditor, ListEditor, useEditable, useEditableDoc } from './Editor';
-import { ABOUT_FIELDS, ACH_BLANK, ACH_FIELDS, ACH_PREVIEW, PROJ_BLANK, PROJ_FIELDS, PROJ_PREVIEW, SKILL_BLANK, SKILL_FIELDS, SKILL_PREVIEW } from './fields';
+import { STAT_BLANK, STAT_FIELDS, STAT_PREVIEW, ABOUT_FIELDS, ACH_BLANK, ACH_FIELDS, ACH_PREVIEW, PROJ_BLANK, PROJ_FIELDS, PROJ_PREVIEW, SKILL_BLANK, SKILL_FIELDS, SKILL_PREVIEW } from './fields';
 import { asset } from '../utils/asset';
 import { thock, thud, whoosh } from './sound';
 import { DiaryHome, useDiary } from './Diary';
@@ -60,6 +61,7 @@ const WIDE = { Tab: 1.5, '\\': 1.5, Caps: 1.8, Enter: 2.2, Shift: 2.4, Ctrl: 1.5
 /* ---------- trang chủ: dữ liệu sửa được trên web (khi đăng nhập #admin) ---------- */
 const EDITS = [
   ['about', '🙋 Giới thiệu & ảnh đại diện'],
+  ['stats', '🔢 Các con số (GPA, kinh nghiệm…)'],
   ['ach', '📌 Hành trình (thành tích)'],
   ['skills', '⌨️ Kỹ năng'],
   ['proj', '📝 Dự án (bài kiểm tra)'],
@@ -69,9 +71,10 @@ export default function Home(props) {
   const ach = useEditable(achievementsData, 'achievements');
   const skills = useEditable(skillsData, 'skills');
   const proj = useEditable(projectsData, 'projects');
+  const stats = useEditable(statsData, 'stats');
   const [panel, setPanel] = useState(null);
   const [menu, setMenu] = useState(false);
-  const data = useMemo(() => ({ about: { ...aboutData, ...about.doc }, ach: ach.items, skills: skills.items, projects: proj.items }), [about.doc, ach.items, skills.items, proj.items]);
+  const data = useMemo(() => ({ about: { ...aboutData, ...about.doc }, ach: ach.items, skills: skills.items, projects: proj.items, stats: stats.items }), [about.doc, ach.items, skills.items, proj.items, stats.items]);
   const key = useMemo(() => hash(JSON.stringify(data)), [data]);
   const close = () => setPanel(null);
   const canEdit = about.canEdit;
@@ -86,12 +89,23 @@ export default function Home(props) {
       )}
       {panel === 'about' && <DocEditor ed={about} title="Sửa phần giới thiệu" fields={ABOUT_FIELDS} onClose={close} />}
       {canEdit && <ListEditor noFab open={panel === 'ach'} onClose={close} ed={ach} label="thành tích" fields={ACH_FIELDS} blank={ACH_BLANK} preview={ACH_PREVIEW} />}
+      {canEdit && <ListEditor noFab open={panel === 'stats'} onClose={close} ed={stats} label="con số" fields={STAT_FIELDS} blank={STAT_BLANK} preview={STAT_PREVIEW} />}
       {canEdit && <ListEditor noFab open={panel === 'skills'} onClose={close} ed={skills} label="kỹ năng" fields={SKILL_FIELDS} blank={SKILL_BLANK} preview={SKILL_PREVIEW} />}
       {canEdit && <ListEditor noFab open={panel === 'proj'} onClose={close} ed={proj} label="dự án" fields={PROJ_FIELDS} blank={PROJ_BLANK} preview={PROJ_PREVIEW} />}
     </>
   );
 }
 const hash = (str) => { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return h; };
+
+/* một con số ở mục Về mình: tự đếm, hoặc tách "3.83" / "3+" / "100%" thành số để chạy hiệu ứng đếm */
+function statNum(st, achs, projects) {
+  const auto = { 'Số thành tích': achs.length, 'Số dự án': projects.length, 'Số thành tích tiêu biểu': achs.filter((a) => a.featured).length }[st.auto];
+  if (auto != null) return { to: auto, dec: 0, pre: '', suf: '', text: String(auto) };
+  const m = String(st.value || '').match(/^(\D*?)(\d+(?:[.,]\d+)?)(.*)$/);
+  if (!m) return null;
+  const num = m[2].replace(',', '.');
+  return { to: parseFloat(num), dec: (num.split('.')[1] || '').length, pre: m[1], suf: m[3], text: st.value };
+}
 
 function HomeView({ onNav, onLightbox, data }) {
   const root = useRef(null);
@@ -178,9 +192,9 @@ function HomeView({ onNav, onLightbox, data }) {
         .to(q('.about .hl'), { backgroundSize: '100% 100%', stagger: 0.08, duration: 0.12, ease: 'none' }, 0.5)
         .fromTo(q('.about .doodle path'), { strokeDashoffset: 400 }, { strokeDashoffset: 0, stagger: 0.04, duration: 0.2, ease: 'none' }, 0.55)
         .from(q('.about .stat'), { y: 40, opacity: 0, rotate: () => gsap.utils.random(-12, 12), stagger: 0.05, duration: 0.12 }, 0.7);
-      q('.about .stat-n').forEach((el) => {
+      q('.about .stat-n[data-to]').forEach((el) => {
         const to = parseFloat(el.dataset.to), dec = el.dataset.dec ? +el.dataset.dec : 0, obj = { v: 0 };
-        about.to(obj, { v: to, duration: 0.15, ease: 'none', onUpdate: () => { el.textContent = obj.v.toFixed(dec) + (el.dataset.suf || ''); } }, 0.75);
+        about.to(obj, { v: to, duration: 0.15, ease: 'none', onUpdate: () => { el.textContent = (el.dataset.pre || '') + obj.v.toFixed(dec) + (el.dataset.suf || ''); } }, 0.75);
       });
 
       /* ====== 3. HÀNH TRÌNH: cuộn ngang, bút chì kẻ đường thời gian ====== */
@@ -256,7 +270,6 @@ function HomeView({ onNav, onLightbox, data }) {
   const release = (e) => e.currentTarget.classList.remove('down');
 
   const bioWords = renderBio(about.bio || '', (about.highlights || []).filter(Boolean));
-  const gpa = (introData.find((x) => /education/i.test(x.name))?.desc.match(/GPA:\s*([\d.]+)/) || [])[1] || '3.83';
   const counts = { 'du-an': data.projects.length, 'thanh-tich': ACHS.length, 'nhat-ky': diary.posts.length };
 
   return (
@@ -320,10 +333,11 @@ function HomeView({ onNav, onLightbox, data }) {
             <h2 className="hw-title">Về mình ✏️</h2>
             <p className="bio">{bioWords}</p>
             <div className="stats">
-              <div className="stat"><b className="stat-n" data-to={parseFloat(gpa)} data-dec="2">0</b><span>GPA / 4.0</span></div>
-              <div className="stat"><b className="stat-n" data-to={+about.years || 0} data-suf="+">0</b><span>năm kinh nghiệm</span></div>
-              <div className="stat"><b className="stat-n" data-to={ACHS.length}>0</b><span>giấy khen, thành tích</span></div>
-              <div className="stat"><b className="stat-n" data-to={data.projects.length}>0</b><span>dự án mã nguồn mở</span></div>
+              {data.stats.map((st) => {
+                const n = statNum(st, ACHS, data.projects);
+                return n ? <div key={st.id || st.label} className="stat"><b className="stat-n" data-to={n.to} data-dec={n.dec} data-pre={n.pre} data-suf={n.suf}>{n.text}</b><span>{st.label}</span></div>
+                  : <div key={st.id || st.label} className="stat"><b className="stat-n">{st.value}</b><span>{st.label}</span></div>;
+              })}
             </div>
             <svg className="doodle d1" viewBox="0 0 120 60" aria-hidden="true"><path d="M5 40 C 30 5, 60 5, 80 30 S 110 50, 115 20" /><path d="M115 20 l-12 2 M115 20 l-2 12" /></svg>
             <svg className="doodle d2" viewBox="0 0 60 60" aria-hidden="true"><path d="M30 5 L36 24 L56 24 L40 36 L46 55 L30 43 L14 55 L20 36 L4 24 L24 24 Z" /></svg>

@@ -67,6 +67,14 @@ export const PROJ_FIELDS = [
 export const PROJ_BLANK = () => ({ title: '', category: 'WEB', year: new Date().getFullYear(), hue: Math.floor(Math.random() * 360), featured: false, pinned: false, desc: { vi: '', en: '' }, tags: [], repo: '', demo: '', images: [], thumb: '', look: 'exam' });
 export const PROJ_PREVIEW = (p) => ({ img: p.thumb ? asset(p.thumb) : null, title: p.title, sub: `${p.category} · ${p.year}${p.featured || p.pinned ? ' · ★' : ''} · ${(p.tags || []).slice(0, 3).join(', ')}` });
 
+export const STAT_FIELDS = [
+  { key: 'value', label: 'Con số (vd: 3.83, 3+, 100%). Để trống nếu chọn tự đếm bên dưới', type: 'text' },
+  { key: 'label', label: 'Dòng chữ bên dưới (vd: năm kinh nghiệm)', type: 'text', required: true },
+  { key: 'auto', label: 'Tự đếm (để trống nếu tự ghi con số)', type: 'text', options: ['Số thành tích', 'Số dự án', 'Số thành tích tiêu biểu'] },
+];
+export const STAT_BLANK = () => ({ value: '', label: '', auto: '' });
+export const STAT_PREVIEW = (x) => ({ img: null, title: `${x.auto ? `[${x.auto}]` : x.value} · ${x.label}`, sub: x.auto ? 'tự đếm' : '' });
+
 export const SKILL_FIELDS = [
   { key: 'name', label: 'Nhóm kỹ năng (vd: Languages)', type: 'text', required: true },
   { key: 'desc', label: 'Các kỹ năng, cách nhau bằng dấu " - " hoặc dấu phẩy', type: 'area', required: true },
