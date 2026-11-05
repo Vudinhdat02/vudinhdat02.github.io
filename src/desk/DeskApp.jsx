@@ -116,7 +116,14 @@ function Desk({ lenisRef }) {
   /* ---------- cuộn mượt ---------- */
   useEffect(() => {
     if (reduced()) return undefined;
-    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
+    /* khung nào có thanh cuộn riêng (cửa sổ, bảng sửa, sổ nhật ký…) thì để chuột cuộn khung đó */
+    const ownScroll = (el) => {
+      if (el === document.body || el === document.documentElement) return false;
+      const s = getComputedStyle(el);
+      return (/(auto|scroll)/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 1)
+        || (/(auto|scroll)/.test(s.overflowX) && el.scrollWidth > el.clientWidth + 1);
+    };
+    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true, prevent: ownScroll });
     lenisRef.current = lenis;
     lenis.on('scroll', ScrollTrigger.update);
     const raf = (t) => lenis.raf(t * 1000);
