@@ -93,8 +93,8 @@
   },
   {
     "id": "vocabulary-saver-extension",
-    "title": "Auto Vocab Saver",
-    "category": "WEB",
+    "title": "Extension Auto save Vocabulary",
+    "category": "extension",
     "year": 2026,
     "hue": 220,
     "featured": false,
@@ -108,9 +108,10 @@
       "Chrome Extension MV3",
       "Storage API"
     ],
-    "repo": "https://github.com/Vudinhdat02/vocabulary-saver-extension",
+    "repo": "https://github.com/Vudinhdat02/extensionVocabularySave",
     "demo": "",
-    "images": []
+    "images": [],
+    "look": "chalk"
   },
   {
     "id": "highlight-vocab-tool",
