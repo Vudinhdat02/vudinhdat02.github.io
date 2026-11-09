@@ -1,5 +1,27 @@
 [
   {
+    "title": "App Theme macOS for Windows",
+    "category": "WEB",
+    "year": 2026,
+    "hue": 307,
+    "featured": false,
+    "pinned": false,
+    "desc": {
+      "vi": "App giao diện phong cách macOS cho Windows, nhẹ, mượt, đẹp và tinh tế",
+      "en": ""
+    },
+    "tags": [
+      "C#",
+      "PowerShell"
+    ],
+    "repo": "https://github.com/Vudinhdat02/appThemeMacOS",
+    "demo": "",
+    "images": [],
+    "thumb": "",
+    "look": "library",
+    "id": "mw9osnz3rocu"
+  },
+  {
     "title": "App Love Day Dounter",
     "category": "Android",
     "year": 2026,
