@@ -10,7 +10,9 @@
       "vi": "App đếm thời gian hẹn hò, thông báo lịch kỉ niệm",
       "en": ""
     },
-    "tags": [],
+    "tags": [
+      "Kotlin"
+    ],
     "repo": "https://github.com/Vudinhdat02/appLoveDaysCounter",
     "demo": "",
     "images": [],
