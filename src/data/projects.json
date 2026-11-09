@@ -1,5 +1,24 @@
 [
   {
+    "title": "App Love Day Dounter",
+    "category": "Android",
+    "year": 2026,
+    "hue": 98,
+    "featured": false,
+    "pinned": false,
+    "desc": {
+      "vi": "App đếm thời gian hẹn hò, thông báo lịch kỉ niệm",
+      "en": ""
+    },
+    "tags": [],
+    "repo": "https://github.com/Vudinhdat02/appLoveDaysCounter",
+    "demo": "",
+    "images": [],
+    "thumb": "",
+    "look": "polaroid",
+    "id": "mw9om271khts"
+  },
+  {
     "id": "dmsApplication",
     "title": "DMS — Driver Monitoring System",
     "category": "MOBILE",
