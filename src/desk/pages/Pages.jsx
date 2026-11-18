@@ -51,7 +51,7 @@ export default function SubPage({ id, onNav, onNight }) {
         {id === 'nhat-ky' && <DiaryBoard />}
         {id === 'cv' && <CvPage />}
         {id === 'lien-he' && <ContactPage />}
-        {id === 'goc-vui' && <Suspense fallback={<p className="pg-wait">Đang bày đồ chơi ra bàn…</p>}><GocVui onNav={onNav} onNight={onNight} /></Suspense>}
+        {id === 'goc-vui' && <Suspense fallback={<p className="pg-wait">Đang chuẩn bị phòng thí nghiệm…</p>}><GocVui onNav={onNav} onNight={onNight} /></Suspense>}
       </section>
       <div className="pg-next-wrap">
         <Torn color="#f4f7fc" seed={i + 2} />

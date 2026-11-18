@@ -1,5 +1,5 @@
 /*
- * Trang "Góc vui": thi gõ phím, giờ tự học (Pomodoro), sân bay drone và mấy món đồ chơi kỹ sư
+ * Trang "Góc vui": thi gõ phím, giờ tự học (Pomodoro), sân bay drone và phòng thí nghiệm kỹ thuật
  * (bảng mạch LED 8 bit, săn bug, máy điện báo Morse) — xem Toys.jsx. Tất cả chạy offline.
  */
 import { useLayoutEffect, useRef } from 'react';
@@ -45,7 +45,7 @@ export default function GocVui() {
       </section>
 
       <section className="gv-airport">
-        <h2 className="gv-h">Đồ chơi của kỹ sư 🧰</h2>
+        <h2 className="gv-h">Phòng thí nghiệm kỹ thuật 🔬</h2>
         <div className="gv-toys3">
           <article className="gv gv-bin">
             <span className="gv-tag green">Bảng mạch 8 bit</span>

@@ -1,0 +1,89 @@
+/* =================================================================
+ *  THÀNH TÍCH: bảng thẻ theo năm — thoáng, dễ đọc, chút hoạt hình trường học (nạp sau desk15.css)
+ * ================================================================= */
+.yb { --gap: 28px; max-width: 1180px; margin: 0 auto; padding: 6px 5vw 40px; color: var(--ink); }
+.yb .c-hoc, .yb-card.c-hoc { --cc: #3b6fd8; --cl: #e4edff; }
+.yb .c-hd, .yb-card.c-hd { --cc: #2f9e5b; --cl: #e3f6e9; }
+.yb .c-thi, .yb-card.c-thi { --cc: #d33a2c; --cl: #ffe7e3; }
+
+/* ---------- hàng tổng kết (cũng là bộ lọc) ---------- */
+.yb-sum { display: flex; flex-wrap: wrap; gap: 12px; }
+.yb-chip { --cc: var(--ink); --cl: #fff; display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 16px; background: #fff; border: 2px solid var(--ink); box-shadow: 0 4px 0 var(--ink); font: 1.1rem var(--hand); color: var(--ink); transition: translate 0.2s, box-shadow 0.2s, background 0.2s; }
+.yb-chip i { font-style: normal; font-size: 1.2rem; }
+.yb-chip b { font: 400 1.7rem/1 var(--hand); color: var(--cc); }
+.yb-chip.all b { color: var(--red); }
+.yb-chip.gold { --cl: #fff6cc; } .yb-chip.gold b { color: #b0821f; }
+.yb-chip:hover { translate: 0 -3px; box-shadow: 0 7px 0 var(--ink); }
+.yb-chip.on { background: var(--cl); translate: 0 2px; box-shadow: 0 2px 0 var(--ink); }
+.yb-chip.all.on { background: #fff7c2; }
+
+/* ---------- mỗi năm: tấm bảng đen nhỏ làm tiêu đề ---------- */
+.yb-year { margin-top: 54px; }
+.yb-board { position: relative; display: inline-flex; align-items: baseline; gap: 10px; padding: 8px 18px 10px; border-radius: 6px; background: #2f4a3a; border: 4px solid #b8865b; color: #f4f1e6; font: 400 2rem/1 var(--hand); box-shadow: 0 5px 0 rgba(0, 0, 0, 0.18); rotate: -1.5deg; }
+.yb-board small { font: 1rem var(--hand); opacity: 0.75; }
+.yb-board em { font: normal 1rem var(--hand); color: #ffe14d; }
+.yb-board::after { content: ''; position: absolute; left: 14px; bottom: -4px; width: 26px; height: 6px; border-radius: 2px; background: #fff; box-shadow: 34px 0 0 #ffd0d6; }
+.yb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: var(--gap); margin-top: 26px; align-items: start; }
+
+/* ---------- thẻ như nhãn dán ---------- */
+.yb-card { --cc: var(--ink); --cl: #f4f7fc; position: relative; display: flex; flex-direction: column; text-align: left; padding: 10px 10px 14px; border-radius: 18px; background: #fff; border: 2px solid var(--ink); box-shadow: 0 5px 0 rgba(31, 47, 110, 0.18); cursor: pointer; color: var(--ink); transition: translate 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), rotate 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s; }
+.yb-card:nth-child(odd) { rotate: -0.6deg; } .yb-card:nth-child(even) { rotate: 0.6deg; }
+.yb-card:hover { translate: 0 -6px; rotate: 0deg; box-shadow: 0 10px 0 rgba(31, 47, 110, 0.16), 0 20px 30px rgba(31, 47, 110, 0.12); }
+.yb-card:focus-visible { outline: 3px solid var(--red); outline-offset: 4px; }
+.yb-tape { position: absolute; left: 50%; top: -11px; z-index: 2; width: 70px; height: 20px; translate: -50% 0; rotate: -3deg; background: color-mix(in srgb, var(--cc) 30%, rgba(255, 255, 255, 0.6)); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+.yb-pic { display: block; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: var(--cl); }
+.yb-pic img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+.yb-card:hover .yb-pic img { transform: scale(1.05); }
+.yb-ph { display: grid; place-items: center; height: 100%; font-size: 2.6rem; }
+.yb-ic { position: absolute; left: 18px; top: calc(10px + (100% - 20px) * 0); margin-top: -2px; display: grid; place-items: center; width: 40px; height: 40px; translate: 0 calc(-50%); border-radius: 50%; background: #fff; border: 3px solid var(--cc); font-size: 1.15rem; box-shadow: 0 3px 0 var(--cc); }
+.yb-card .yb-ic { top: auto; position: relative; left: auto; translate: none; margin: -22px 0 0 10px; z-index: 2; }
+.yb-card:hover .yb-ic { animation: yb-wobble 0.6s ease-in-out; }
+@keyframes yb-wobble { 0% { rotate: 0deg; } 25% { rotate: -16deg; scale: 1.1; } 60% { rotate: 12deg; } 100% { rotate: 0deg; } }
+.yb-body { display: flex; flex-direction: column; gap: 4px; padding: 6px 6px 0; }
+.yb-cat { font: 700 0.72rem var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cc); }
+.yb-t { font: 700 1.05rem/1.3 var(--body); color: var(--ink); }
+.yb-date { font: 0.86rem var(--body); color: var(--ink-soft); }
+.yb-desc { margin-top: 2px; font: 1.02rem/1.4 var(--hand); color: #33407a; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.yb-gold { position: absolute; right: -10px; top: -12px; z-index: 3; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #ffe14d; border: 3px solid #b0821f; color: #b0821f; font-size: 1.4rem; box-shadow: 0 3px 0 #b0821f; animation: yb-shine 3s ease-in-out infinite; }
+@keyframes yb-shine { 0%, 100% { rotate: -10deg; } 50% { rotate: 10deg; scale: 1.08; } }
+.yb-stamp { position: absolute; right: 14px; top: 38%; z-index: 2; padding: 3px 10px; border: 3px double var(--red); border-radius: 6px; font: 400 1.1rem var(--hand); color: var(--red); background: rgba(255, 255, 255, 0.85); rotate: -12deg; opacity: 0.9; pointer-events: none; }
+.yb-card.star { border-color: #b0821f; box-shadow: 0 5px 0 rgba(176, 130, 31, 0.35); }
+
+/* pháo giấy khi bấm (gắn vào body) */
+.yb-burst { position: fixed; inset: 0; z-index: 9500; pointer-events: none; }
+.yb-burst i { position: absolute; width: 8px; height: 12px; margin: -6px 0 0 -4px; border-radius: 2px; }
+.yb-burst i.emo { width: auto; height: auto; font-size: 1.1rem; font-style: normal; background: none; }
+
+@media (max-width: 759px) {
+  .yb { padding: 0 4vw 30px; }
+  .yb-sum { gap: 8px; }
+  .yb-chip { padding: 7px 11px; gap: 6px; font-size: 0.95rem; border-radius: 12px; }
+  .yb-chip b { font-size: 1.35rem; }
+  .yb-year { margin-top: 40px; }
+  .yb-board { font-size: 1.6rem; padding: 6px 14px 8px; }
+  .yb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; margin-top: 20px; }
+  .yb-card { padding: 7px 7px 10px; border-radius: 14px; rotate: 0deg !important; }
+  .yb-pic { border-radius: 9px; }
+  .yb-card .yb-ic { width: 32px; height: 32px; font-size: 0.95rem; margin: -18px 0 0 6px; border-width: 2px; }
+  .yb-t { font-size: 0.88rem; }
+  .yb-date { font-size: 0.74rem; }
+  .yb-desc { display: none; }
+  .yb-cat { font-size: 0.62rem; }
+  .yb-gold { width: 34px; height: 34px; font-size: 1.05rem; right: -6px; top: -10px; }
+  .yb-stamp { font-size: 0.8rem; padding: 2px 6px; right: 6px; }
+  .yb-tape { width: 50px; height: 15px; top: -8px; }
+}
+@media (max-width: 340px) { .yb-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .yb-gold, .yb-card:hover .yb-ic { animation: none !important; } }
+
+/* các năm ít thành tích nằm chung một hàng, không để khoảng trắng lớn */
+.yb-years { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0 40px; }
+.yb-year { flex: var(--n) 1 calc(var(--n) * 250px); min-width: 0; max-width: 100%; }
+.yb-year .yb-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+.yb-year .yb-card { max-width: 340px; }
+@media (max-width: 759px) {
+  .yb-years { gap: 0 12px; }
+  .yb-year { flex: var(--n) 1 calc(var(--n) * 150px); }
+  .yb-year .yb-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .yb-board em { display: none; }
+}
