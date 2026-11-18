@@ -1,36 +1,30 @@
 /*
- * Trang "Góc vui": máy tính phòng máy (Terminal), bài chính tả (thi gõ phím), đồng hồ lớp học (Pomodoro)
- * và sân bay drone (Toys.jsx). Tất cả chạy offline.
+ * Trang "Góc vui": thi gõ phím, giờ tự học (Pomodoro), sân bay drone và mấy món đồ chơi kỹ sư
+ * (bảng mạch LED 8 bit, săn bug, máy điện báo Morse) — xem Toys.jsx. Tất cả chạy offline.
  */
 import { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Terminal, TypeRace, Focus } from '../apps/Apps';
-import { DroneGame } from '../apps/Toys';
+import { TypeRace, Focus } from '../apps/Apps';
+import { DroneGame, BinaryLeds, BugSmash, Morse } from '../apps/Toys';
 
 gsap.registerPlugin(ScrollTrigger);
 
-export default function GocVui({ onNav, onNight }) {
+export default function GocVui() {
   const ref = useRef(null);
   useLayoutEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
     const ctx = gsap.context(() => {
       gsap.utils.toArray('.gv').forEach((el, i) => {
-        gsap.from(el, { y: 70, rotate: [-3, 2.5, -1.5, 2, -2.5, 1.5, -2][i % 7], opacity: 0, duration: 0.9, ease: 'back.out(1.4)', delay: i < 3 ? 0.15 + i * 0.1 : 0,
-          scrollTrigger: { trigger: el, start: 'top 90%', once: true } });
+        gsap.from(el, { y: 70, rotate: [-3, 2.5, -1.5, 2, -2.5, 1.5, -2][i % 7], opacity: 0, duration: 0.9, ease: 'back.out(1.4)', delay: i < 2 ? 0.15 + i * 0.1 : 0,
+          scrollTrigger: { trigger: el, start: 'top 92%', once: true } });
       });
     }, ref);
     return () => ctx.revert();
   }, []);
   return (
-    <div className="gv-page" ref={ref}>
-      <div className="gocvui">
-        <article className="gv gv-term">
-          <span className="gv-tag">Phòng máy · bàn số 7</span>
-          <div className="gv-bezel"><Terminal onOpen={onNav} onNight={onNight} /></div>
-          <div className="gv-stand" />
-          <p className="gv-tip">Bấm vào màn hình rồi gõ <code>help</code>. Thử <code>sudo hire-dat</code> 😉</p>
-        </article>
+    <div className="gv-page gv3" ref={ref}>
+      <div className="gv-row2">
         <article className="gv gv-type">
           <span className="gv-tag red">Thi gõ phím · 30 giây</span>
           <TypeRace />
@@ -48,6 +42,24 @@ export default function GocVui({ onNav, onNight }) {
           <span className="gv-tag">Bãi thử · bàn số 8</span>
           <DroneGame />
         </article>
+      </section>
+
+      <section className="gv-airport">
+        <h2 className="gv-h">Đồ chơi của kỹ sư 🧰</h2>
+        <div className="gv-toys3">
+          <article className="gv gv-bin">
+            <span className="gv-tag green">Bảng mạch 8 bit</span>
+            <BinaryLeds />
+          </article>
+          <article className="gv gv-bug">
+            <span className="gv-tag red">Săn bug · 20 giây</span>
+            <BugSmash />
+          </article>
+          <article className="gv gv-morse">
+            <span className="gv-tag">Máy điện báo Morse</span>
+            <Morse />
+          </article>
+        </div>
       </section>
     </div>
   );

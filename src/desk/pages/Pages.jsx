@@ -20,7 +20,7 @@ const TAPES = {
   'nhat-ky': ['Hôm nay', 'Một tấm ảnh', 'Vài dòng', 'Kỷ niệm', 'Dây phơi', 'Thả tim'],
   cv: ['Kinh nghiệm', 'Học vấn', 'Kỹ năng', 'Chứng chỉ', 'In ngay'],
   'lien-he': ['Hợp tác', 'Tuyển dụng', 'Hỏi bài', 'Cà phê', 'Viết thư'],
-  'goc-vui': ['help', 'sudo hire-dat', 'Drone', 'WPM', 'Pomodoro', 'coffee'],
+  'goc-vui': ['Drone', 'LED 8 bit', 'Săn bug', 'Morse', 'WPM', 'Pomodoro', 'coffee'],
 };
 
 export default function SubPage({ id, onNav, onNight }) {
