@@ -35,7 +35,7 @@ export const FRAMES = [
 ];
 /* 10 kiểu trình bày thẻ dự án */
 export const LOOKS = [
-  { key: 'exam', name: 'Bài kiểm tra' },
+  { key: 'exam', name: 'Giấy kẻ ô' },
   { key: 'notebook', name: 'Vở ô ly' },
   { key: 'sticky', name: 'Giấy nhớ' },
   { key: 'polaroid', name: 'Ảnh polaroid' },
@@ -62,7 +62,7 @@ export const PROJ_FIELDS = [
   { key: 'look', label: 'Kiểu trình bày', type: 'look' },
   { key: 'repo', label: 'Link mã nguồn (GitHub)', type: 'url' },
   { key: 'demo', label: 'Link chạy thử', type: 'url' },
-  { key: 'featured', label: 'Nổi bật (hiện ở mục "Bài kiểm tra" trang chủ, tối đa 3)', type: 'check' },
+  { key: 'featured', label: 'Nổi bật (hiện ở mục "Dự án" trang chủ, tối đa 3)', type: 'check' },
 ];
 export const PROJ_BLANK = () => ({ title: '', category: 'WEB', year: new Date().getFullYear(), hue: Math.floor(Math.random() * 360), featured: false, pinned: false, desc: { vi: '', en: '' }, tags: [], repo: '', demo: '', images: [], thumb: '', look: 'exam' });
 export const PROJ_PREVIEW = (p) => ({ img: p.thumb ? asset(p.thumb) : null, title: p.title, sub: `${p.category} · ${p.year}${p.featured || p.pinned ? ' · ★' : ''} · ${(p.tags || []).slice(0, 3).join(', ')}` });

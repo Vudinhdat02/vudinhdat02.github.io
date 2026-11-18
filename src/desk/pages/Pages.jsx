@@ -20,7 +20,7 @@ const TAPES = {
   'nhat-ky': ['Hôm nay', 'Một tấm ảnh', 'Vài dòng', 'Kỷ niệm', 'Dây phơi', 'Thả tim'],
   cv: ['Kinh nghiệm', 'Học vấn', 'Kỹ năng', 'Chứng chỉ', 'In ngay'],
   'lien-he': ['Hợp tác', 'Tuyển dụng', 'Hỏi bài', 'Cà phê', 'Viết thư'],
-  'goc-vui': ['help', 'sudo hire-dat', 'Drone', 'LED 8 bit', 'Săn bug', 'Morse', 'WPM', 'Pomodoro'],
+  'goc-vui': ['help', 'sudo hire-dat', 'Drone', 'WPM', 'Pomodoro', 'coffee'],
 };
 
 export default function SubPage({ id, onNav, onNight }) {
@@ -29,9 +29,6 @@ export default function SubPage({ id, onNav, onNight }) {
   const next = ROUTES[i + 1] || ROUTES[1];
   return (
     <main className={`page page-${id}`} style={{ '--c': r.color }}>
-      {id === 'thanh-tich' ? (
-        <nav className="gx-crumb"><button onClick={() => onNav('')}>Trang chủ</button><span>/</span><b>{r.label}</b></nav>
-      ) : (<>
       <header className="pg-head">
         <nav className="pg-crumb"><button onClick={() => onNav('')}>⌂ Trang chủ</button><span>/</span><b>{r.label}</b></nav>
         <div className="pg-title-row">
@@ -48,7 +45,6 @@ export default function SubPage({ id, onNav, onNight }) {
         <span className="pg-tape t1" /><span className="pg-tape t2" />
       </header>
       <Tape items={TAPES[id] || []} tilt={-1.6} color={r.color} />
-      </>)}
       <section className="pg-body">
         {id === 'du-an' && <ProjectsPage />}
         {id === 'thanh-tich' && <AchievementsPage />}

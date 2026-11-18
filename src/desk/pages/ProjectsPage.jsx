@@ -1,8 +1,8 @@
 /*
- * Trang "Dự án": giờ trả bài kiểm tra.
- *  - Bảng đen ghi đề, các bài được chia ra bàn như thầy phát đề (4 bài một hàng).
- *  - Rê chuột: tờ giấy nhấc lên, góc giấy quăn, bút chì gạch chân tên bài, giấy nhớ ló ra.
- *  - Bấm: tờ bài bay ra giữa, chữ hiện như đang viết, bút đỏ khoanh điểm, tích từng phần, đóng dấu "Đã chấm".
+ * Trang "Dự án": tủ hồ sơ dự án.
+ *  - Các thẻ dự án xếp lưới đều (4 thẻ một hàng trên máy tính), cùng chiều cao, thẳng hàng.
+ *  - Rê chuột: thẻ nhấc lên, góc giấy quăn, bút chì gạch chân tên dự án.
+ *  - Bấm: tờ hồ sơ bay ra giữa, chữ hiện dần, bút đỏ tích từng phần, đóng dấu "Hoàn thành".
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -18,7 +18,6 @@ import { asset } from '../../utils/asset';
 gsap.registerPlugin(ScrollTrigger);
 
 const CAT_IC = { MOBILE: '📱', IOT: '🛰', WEB: '🌐' };
-const REMARKS = ['Xuất sắc!', 'Rất sáng tạo!', 'Ý tưởng hay, phát huy!', 'Trình bày rõ ràng!', 'Làm kỹ, rất tốt!', 'Tuyệt vời!'];
 const TILT = [-0.8, 0.6, -0.4, 0.9, -0.6, 0.4];
 
 const Tick = () => (
@@ -53,29 +52,23 @@ function Sheet({ p, n }) {
       <span className="hs-clip" aria-hidden="true" />
       <span className="hs-shine" aria-hidden="true" />
       <header className="hs-head">
-        <span><small>Họ và tên:</small> <i>Vũ Đình Đạt</i></span>
-        <span><small>Môn:</small> <i>{p.category || '—'}</i></span>
-        <span><small>Năm:</small> <i>{p.year || '—'}</i></span>
+        <span><i>{CAT_IC[p.category] || '📁'} {p.category || 'Dự án'}</i></span>
+        {p.year && <span><i>🗓 {p.year}</i></span>}
       </header>
-      <div className="hs-score" aria-label="Điểm 10">
-        <svg viewBox="0 0 120 90" aria-hidden="true"><path pathLength="1" d="M60 8 C 20 6, 6 30, 12 52 C 18 78, 70 86, 98 70 C 120 56, 112 18, 72 10 C 60 8, 48 12, 40 16" /></svg>
-        <b>10</b>
-        <em>{REMARKS[n % REMARKS.length]}</em>
-      </div>
       <h3 className="hs-q">{p.title}</h3>
       {p.thumb && <figure className="hs-img"><img src={asset(p.thumb)} alt={p.title} /></figure>}
-      <p className="hs-label"><Tick />Bài làm:</p>
+      <p className="hs-label"><Tick />Mô tả:</p>
       <p className="hs-a">{desc.split(/(\s+)/).map((w, i) => (/\s/.test(w) ? w : <span key={i} className="hs-w">{w}</span>))}</p>
       {(p.tags || []).length > 0 && (
         <>
-          <p className="hs-label"><Tick />Công cụ đã dùng:</p>
+          <p className="hs-label"><Tick />Công nghệ:</p>
           <ul className="hs-tags">{p.tags.map((t) => <li key={t}>{t}</li>)}</ul>
         </>
       )}
       <footer className="hs-foot">
         {p.repo && <a href={p.repo} target="_blank" rel="noreferrer" onMouseEnter={() => thock(1.4)}>Xem mã nguồn →</a>}
         {p.demo && <a href={p.demo} target="_blank" rel="noreferrer" onMouseEnter={() => thock(1.4)}>Chạy thử →</a>}
-        <span className="hs-stamp" aria-hidden="true">Đã chấm</span>
+        <span className="hs-stamp" aria-hidden="true">Hoàn thành</span>
       </footer>
       <Pen />
     </article>
@@ -92,45 +85,28 @@ const at = (sheet, el, dx = 0, dy = 0) => {
 /* dựng cảnh chấm bài cho một tờ giấy */
 function gradeTimeline(sheet) {
   const pen = sheet.querySelector('.hs-pen');
-  const score = sheet.querySelector('.hs-score');
-  const ring = score.querySelector('path');
   const ticks = [...sheet.querySelectorAll('.hs-tick')];
   const words = sheet.querySelectorAll('.hs-w');
   const tags = sheet.querySelectorAll('.hs-tags li');
   const stamp = sheet.querySelector('.hs-stamp');
-  const sw = score.offsetWidth, sh = score.offsetHeight;
-  const c = at(sheet, score, sw / 2, sh / 2);
   // ngòi bút nằm ở đáy hình (x: giữa, y: cuối) nên dời hình lên trên ngòi
   const pw = pen.getBoundingClientRect().width || 40, ph = pw * 3;
   const tip = (x, y) => ({ x: x - pw / 2, y: y - ph * 0.93 });
-  const ring8 = Array.from({ length: 9 }, (_, k) => {
-    const a = -Math.PI / 2 - (k / 8) * Math.PI * 2;
-    return tip(c.x + Math.cos(a) * sw * 0.46, c.y + Math.sin(a) * sh * 0.44);
-  });
 
   const tl = gsap.timeline({ paused: true });
   tl.from(words, { opacity: 0, y: 6, duration: 0.25, stagger: { each: Math.min(0.03, 1.4 / Math.max(words.length, 1)) }, ease: 'power1.out' }, 0)
     .from(tags, { scale: 0, rotate: () => gsap.utils.random(-20, 20), duration: 0.35, stagger: 0.06, ease: 'back.out(2.4)' }, 0.5);
 
-  // bút bay vào từ góc phải, khoanh điểm
-  const t0 = 0.7;
-  tl.set(pen, { ...tip(sheet.offsetWidth + 60, -40), rotate: 28, opacity: 1 }, t0)
-    .to(pen, { ...ring8[0], rotate: 18, duration: 0.45, ease: 'power2.out' }, t0)
-    .add(() => buzz(), t0 + 0.45)
-    .fromTo(ring, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.7, ease: 'none' }, t0 + 0.45)
-    .to(pen, { keyframes: ring8.slice(1).map((pt) => ({ ...pt, duration: 0.7 / 8, ease: 'none' })) }, t0 + 0.45)
-    .from(score.querySelector('b'), { scale: 0, opacity: 0, duration: 0.3, ease: 'back.out(2.5)' }, t0 + 0.8)
-    .from(score.querySelector('em'), { opacity: 0, x: -10, duration: 0.3 }, t0 + 1.05);
-
-  // tích ✓ từng phần
-  let t = t0 + 1.25;
+  // bút bay vào từ góc phải, tích ✓ từng phần
+  let t = 0.6;
+  tl.set(pen, { ...tip(sheet.offsetWidth + 60, -40), rotate: 28, opacity: 1 }, t);
   ticks.forEach((tk) => {
     const p0 = at(sheet, tk, 6, 18), p1 = at(sheet, tk, 34, 4);
-    tl.to(pen, { ...tip(p0.x, p0.y), rotate: 8, duration: 0.3, ease: 'power2.inOut' }, t)
-      .add(() => thock(1.5), t + 0.3)
-      .fromTo(tk.querySelector('path'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.22, ease: 'none' }, t + 0.3)
-      .to(pen, { ...tip(p1.x, p1.y), duration: 0.22, ease: 'none' }, t + 0.3);
-    t += 0.58;
+    tl.to(pen, { ...tip(p0.x, p0.y), rotate: 8, duration: 0.35, ease: 'power2.inOut' }, t)
+      .add(() => thock(1.5), t + 0.35)
+      .fromTo(tk.querySelector('path'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.22, ease: 'none' }, t + 0.35)
+      .to(pen, { ...tip(p1.x, p1.y), duration: 0.22, ease: 'none' }, t + 0.35);
+    t += 0.62;
   });
 
   // đóng dấu rồi bút bay đi
@@ -143,7 +119,7 @@ function gradeTimeline(sheet) {
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const NOTES = ['Xem chi tiết!', 'Dự án này hay nè', 'Mở ra xem đi ✎', 'Bấm thử xem!'];
 /* lời mời bấm vào, theo từng kiểu trình bày */
-const CTA = { exam: 'Bấm để xem bài làm →', notebook: 'Lật vở xem tiếp →', sticky: 'Xem thêm →', polaroid: 'Xem dự án →', index: 'Xem chi tiết →', blueprint: 'MỞ BẢN VẼ →', chalk: 'Xem lời giải →', folder: 'Mở hồ sơ →', library: 'Mượn sách đọc →', terminal: '$ open --detail' };
+const CTA = { exam: 'Xem chi tiết →', notebook: 'Lật vở xem tiếp →', sticky: 'Xem thêm →', polaroid: 'Xem dự án →', index: 'Xem chi tiết →', blueprint: 'MỞ BẢN VẼ →', chalk: 'Xem chi tiết →', folder: 'Mở hồ sơ →', library: 'Mượn sách đọc →', terminal: '$ open --detail' };
 
 /* một thẻ dự án, trình bày theo 1 trong 10 kiểu */
 function Card({ p, n, onOpen }) {
@@ -168,12 +144,6 @@ function Card({ p, n, onOpen }) {
         {look === 'folder' && <span className="hp-ftab" aria-hidden="true">{p.category || 'Dự án'}</span>}
         {look === 'terminal' && <span className="hp-bar" aria-hidden="true"><i /><i /><i /><small>~/{(p.id || p.title).toString().toLowerCase().replace(/\s+/g, '-').slice(0, 22)}</small></span>}
         <span className="hp-head"><small>{look === 'terminal' ? `# ${p.category || ''}` : `${CAT_IC[p.category] || '📁'} ${p.category || '—'}`}</small><small>{p.year || ''}</small></span>
-        {look === 'exam' && (
-          <span className="hp-score" aria-hidden="true">
-            <svg viewBox="0 0 120 90"><path pathLength="1" d="M60 8 C 20 6, 6 30, 12 52 C 18 78, 70 86, 98 70 C 120 56, 112 18, 72 10 C 60 8, 48 12, 40 16" /></svg>
-            <b>10</b>
-          </span>
-        )}
         {(img || look === 'polaroid') && <span className="hp-img">{img ? <img src={img} alt="" loading="lazy" draggable="false" /> : <span className="hp-ph">{CAT_IC[p.category] || '💡'}</span>}</span>}
         <span className="hp-q"><span className="hp-t">{look === 'terminal' && <em>$ cat </em>}{p.title}<svg className="hp-ul" viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 8 C 40 2, 80 12, 120 6 S 180 4, 198 7" /></svg><span className="hp-pencil" aria-hidden="true" /></span></span>
         <span className="hp-ex">{desc}</span>
@@ -187,7 +157,7 @@ function Card({ p, n, onOpen }) {
   );
 }
 
-/* tờ bài phóng to giữa màn hình + bút đỏ chấm bài */
+/* tờ hồ sơ phóng to giữa màn hình + bút đỏ tích từng phần */
 function Paper({ list, at, from, onClose }) {
   const ref = useRef(null);
   const [i, setI] = useState(at);
@@ -243,9 +213,9 @@ function Paper({ list, at, from, onClose }) {
         <div className="hs"><Sheet key={p.id || i} p={p} n={i} /></div>
       </div>
       <div className="hp-ui">
-        <button className="hp-nav" onClick={() => go(i - 1)} aria-label="Bài trước">‹</button>
-        <span>Bài {i + 1} / {list.length}</span>
-        <button className="hp-nav" onClick={() => go(i + 1)} aria-label="Bài sau">›</button>
+        <button className="hp-nav" onClick={() => go(i - 1)} aria-label="Dự án trước">‹</button>
+        <span>{i + 1} / {list.length}</span>
+        <button className="hp-nav" onClick={() => go(i + 1)} aria-label="Dự án sau">›</button>
       </div>
       <button className="hp-x" onClick={close} aria-label="Đóng">✕</button>
     </div>,

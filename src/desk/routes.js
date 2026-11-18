@@ -1,7 +1,7 @@
 /* các trang riêng, mở từ thanh menu trên cùng (địa chỉ #du-an, #thanh-tich…) */
 export const ROUTES = [
   { id: '', label: 'Trang chủ', color: '#f5c542', icon: '⌂', sub: 'bàn học của kỹ sư' },
-  { id: 'du-an', label: 'Dự án', color: '#6aa9f0', icon: '📝', sub: 'tủ hồ sơ các bài kiểm tra' },
+  { id: 'du-an', label: 'Dự án', color: '#6aa9f0', icon: '📝', sub: 'tủ hồ sơ các dự án' },
   { id: 'thanh-tich', label: 'Thành tích', color: '#ef7d57', icon: '🏅', sub: 'giấy khen, huy chương, chứng chỉ' },
   { id: 'nhat-ky', label: 'Nhật ký', color: '#ffb27a', icon: '📸', sub: 'ảnh và vài dòng mỗi ngày' },
   { id: 'cv', label: 'CV', color: '#b58cf0', icon: '📄', sub: 'in từ máy in kim' },

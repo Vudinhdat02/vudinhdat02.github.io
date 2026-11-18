@@ -45,7 +45,6 @@ const achHome = (all) => {
 };
 const projHome = (list) => { const f = list.filter((p) => p.pinned || p.featured); return (f.length ? f : list).slice(0, 3); };
 const stampFor = (a) => (/xuất sắc|cao nhất|giải/i.test(a.title) ? 'XUẤT SẮC' : /5 tốt|tiêu biểu/i.test(a.title) ? 'TIÊU BIỂU' : /khen/i.test(a.title) ? 'KHEN THƯỞNG' : 'ĐÃ ĐẠT');
-const REMARKS = ['Xuất sắc!', 'Rất sáng tạo!', 'Ý tưởng hay, phát huy!', 'Trình bày rõ ràng!', 'Làm kỹ, rất tốt!', 'Tuyệt vời!'];
 const vi = (v) => (typeof v === 'object' && v ? v.vi || v.en : v);
 const splitSkills = (s) => s.split(/\s*[-,·]\s+|,\s*|\s+\/\s+/).map((x) => x.trim()).filter(Boolean);
 
@@ -65,7 +64,7 @@ const EDITS = [
   ['stats', '🔢 Các con số (GPA, kinh nghiệm…)'],
   ['ach', '📌 Hành trình (thành tích)'],
   ['skills', '⌨️ Kỹ năng'],
-  ['proj', '📝 Dự án (bài kiểm tra)'],
+  ['proj', '🗂 Dự án tiêu biểu'],
 ];
 export default function Home(props) {
   const about = useEditableDoc(aboutData, 'about');
@@ -164,8 +163,13 @@ function HomeView({ onNav, onLightbox, data }) {
       const MOB = window.matchMedia('(max-width: 759px)').matches;
       const onEnter = (trigger, start = 'top 78%') => ({ trigger, start, once: true });
 
-      /* ====== 1. HERO: dòng gợi ý mờ dần khi cuộn qua (không giữ trang lại) ====== */
-      gsap.to(q('.hero-hint'), { opacity: 0, y: 20, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '25% top', scrub: true } });
+      /* ====== 1. HERO: "zoom vào màn hình" theo thanh cuộn — trang vẫn cuộn xuống bình thường, không ghim ======
+         Màn hình CRT phóng to và trượt xuống bù lại quãng cuộn (nên trông như máy quay tiến lại gần),
+         bàn phím đổ ra trước, đồ trên bàn bay ra mép, màn hình loé sáng rồi khung giấy kẻ ô hiện lên. */
+      /* Tiến độ cuộn qua phần đầu trang (0 → 1) ghi vào biến CSS --z; CSS tự tính độ phóng / bay
+         (dùng thuộc tính scale / translate riêng nên không giành giật với hiệu ứng mở màn và rê chuột). */
+      const heroEl = q('.hero')[0];
+      ScrollTrigger.create({ trigger: heroEl, start: 'top top', end: 'bottom top', onUpdate: (st) => heroEl.style.setProperty('--z', st.progress.toFixed(4)), onRefresh: (st) => heroEl.style.setProperty('--z', st.progress.toFixed(4)) });
 
       /* ====== 2. GIỚI THIỆU: trang vở trượt lên, chữ hiện dần ====== */
       const about = gsap.timeline({ scrollTrigger: onEnter('.about', 'top 72%') });
@@ -192,6 +196,8 @@ function HomeView({ onNav, onLightbox, data }) {
           .from(card, { x: MOB ? 40 : (i % 2 ? 80 : -80), y: 30, opacity: 0, duration: 0.8, ease: 'power3.out' }, 0.05);
         if (stamp) tl.fromTo(stamp, { scale: 2.6, opacity: 0, rotate: -40 }, { scale: 1, opacity: 0.88, rotate: -14, duration: 0.3, ease: 'power4.in', onComplete: () => thud() }, 0.6);
       });
+      /* trôi nhẹ so le theo thanh cuộn (máy tính) */
+      if (!MOB) q('.hj-item').forEach((it, i) => gsap.fromTo(it, { y: i % 2 ? 40 : 10 }, { y: i % 2 ? -40 : -10, ease: 'none', scrollTrigger: { trigger: it, start: 'top bottom', end: 'bottom top', scrub: 0.8 } }));
       gsap.from(q('.hj-all'), { scale: 0.6, opacity: 0, duration: 0.6, ease: 'back.out(2)', scrollTrigger: onEnter('.hj-all', 'top 92%') });
 
       /* ====== 4. KỸ NĂNG: phím rơi xuống bảng đen ====== */
@@ -205,12 +211,13 @@ function HomeView({ onNav, onLightbox, data }) {
       gsap.to(q('.board .eraser-swipe'), { xPercent: 900, ease: 'none', scrollTrigger: { trigger: '.board', start: 'top 80%', end: 'bottom 20%', scrub: 1 } });
       gsap.to(q('.board .smudge'), { opacity: 0, stagger: 0.1, duration: 1, scrollTrigger: onEnter('.board', 'top 60%') });
 
-      /* ====== 5. DỰ ÁN: từng bài kiểm tra trượt lên, cô giáo khoanh điểm ====== */
+      /* ====== 5. DỰ ÁN: thẻ trượt lên, số thứ tự bật ra, thanh màu chạy, nhãn công nghệ nảy lên ====== */
       q('.hpj-grid .paper').forEach((p, i) => {
-        gsap.timeline({ scrollTrigger: onEnter(p, 'top 86%') })
-          .from(p, { y: 70, rotate: (i % 2 ? 3 : -3), opacity: 0, duration: 0.8, ease: 'power3.out' }, MOB ? 0 : (i % 3) * 0.12)
-          .fromTo(p.querySelectorAll('.score path'), { strokeDashoffset: 300 }, { strokeDashoffset: 0, duration: 0.5, ease: 'power1.inOut' }, '-=0.2')
-          .from(p.querySelectorAll('.score-n, .remark'), { opacity: 0, scale: 1.6, duration: 0.3, ease: 'back.out(2)' }, '-=0.15');
+        gsap.timeline({ scrollTrigger: onEnter(p, 'top 88%') })
+          .from(p, { y: 70, opacity: 0, duration: 0.8, ease: 'power3.out' }, MOB ? 0 : (i % 3) * 0.12)
+          .from(p.querySelector('.pj-no'), { scale: 0.3, opacity: 0, rotate: -20, duration: 0.6, ease: 'back.out(2.2)' }, '-=0.45')
+          .fromTo(p.querySelector('.pj-line'), { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: 'power2.out' }, '-=0.5')
+          .from(p.querySelectorAll('.exam-tags span'), { y: 12, opacity: 0, stagger: 0.05, duration: 0.35, ease: 'back.out(2)' }, '-=0.4');
       });
       gsap.from(q('.exam-all'), { y: 20, opacity: 0, duration: 0.5, scrollTrigger: onEnter('.exam-all', 'top 95%') });
 
@@ -221,6 +228,10 @@ function HomeView({ onNav, onLightbox, data }) {
       /* tiêu đề mục: trượt lên khi tới */
       q('.sec-title').forEach((t) => gsap.from(t, { y: 30, opacity: 0, duration: 0.7, ease: 'power3.out', scrollTrigger: onEnter(t, 'top 90%') }));
 
+      /* hai dải băng keo xoay nhẹ và trôi ngược chiều nhau khi cuộn qua */
+      q('.tapes').forEach((t) => gsap.fromTo(t, { rotate: -1.2, scale: 0.97 }, { rotate: 1.2, scale: 1.02, ease: 'none', scrollTrigger: { trigger: t, start: 'top bottom', end: 'bottom top', scrub: 0.6 } }));
+      /* bảng đen nghiêng về phía người xem rồi đứng thẳng khi cuộn tới */
+      if (!MOB) gsap.fromTo(q('.board'), { rotateX: 14, scale: 0.94 }, { rotateX: 0, scale: 1, ease: 'none', scrollTrigger: { trigger: '.skills', start: 'top bottom', end: 'top 30%', scrub: 0.8 } });
       /* băng keo chữ trượt vào */
       q('.tape-band').forEach((t, i) => gsap.from(t, { xPercent: i % 2 ? 20 : -20, opacity: 0, duration: 1.1, ease: 'power3.out', scrollTrigger: onEnter(t, 'top 95%') }));
 
@@ -254,6 +265,7 @@ function HomeView({ onNav, onLightbox, data }) {
         <div className="desk-item eraser" data-depth="1"><span>ICTU</span></div>
 
         <div className="crt" data-depth="0.25">
+          <div className="crt-zoom">
           <div className="crt-body">
             <div className="crt-screen">
               <div className="crt-on">
@@ -267,9 +279,11 @@ function HomeView({ onNav, onLightbox, data }) {
             <div className="crt-brand"><i className="crt-led" /></div>
           </div>
           <div className="crt-neck" />
+          </div>
         </div>
 
         <div className="kb-wrap" data-depth="0.15">
+          <div className="kb-fall">
           <div className="kb">
             {KB_ROWS.map((row, r) => (
               <div className="kb-row" key={r}>
@@ -285,12 +299,14 @@ function HomeView({ onNav, onLightbox, data }) {
               </div>
             ))}
           </div>
+          </div>
         </div>
         <SpinBadge className="hero-badge" center="Đ" />
         <Doodle kind="spark" className="hd hd1" color="#f08a24" />
         <Doodle kind="star" className="hd hd2" color="#3b6fd8" delay={0.4} />
         <Doodle kind="swirl" className="hd hd3" color="#d33a2c" delay={0.8} />
-        <p className="hero-hint">cuộn xuống để xem tiếp <span>↓</span></p>
+        <p className="hero-hint">cuộn xuống để “vào” màn hình <span>↓</span></p>
+        <div className="hero-wipe" aria-hidden="true" />
       </section>
 
       {/* ================= GIỚI THIỆU ================= */}
@@ -372,28 +388,24 @@ function HomeView({ onNav, onLightbox, data }) {
 
       {/* ================= DỰ ÁN ================= */}
       <section className="projects hpj paper-bg" id="muc-du-an">
-        <h2 className="sec-title"><Bounce text="Bài kiểm tra · Dự án" /> <span className="emo">📝</span></h2>
+        <h2 className="sec-title"><Bounce text="Dự án tiêu biểu" /> <span className="emo">🗂</span></h2>
         <div className="hpj-grid">
           {PROJ_HOME.map((p, i) => (
-            <article key={p.id || p.title} className="paper">
-              <header className="exam-head">
-                <div><span>Họ và tên:</span> <i>Vũ Đình Đạt</i></div>
-                <div><span>Môn:</span> <i>{p.category}</i></div>
-                <div><span>Năm:</span> <i>{p.year}</i></div>
+            <article key={p.id || p.title} className="paper pj" style={{ '--pc': ['#6aa9f0', '#ef7d57', '#7ccf8a', '#b58cf0'][i % 4] }}>
+              <span className="pj-no" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+              <header className="pj-meta">
+                <span className="pj-cat">{({ MOBILE: '📱', IOT: '🛰', WEB: '🌐' })[p.category] || '📁'} {p.category}</span>
+                {p.year && <span className="pj-year">{p.year}</span>}
               </header>
-              <div className="score">
-                <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M60 8 C 20 6, 6 30, 12 52 C 18 78, 70 86, 98 70 C 120 56, 112 18, 72 10 C 60 8, 48 12, 40 16" /></svg>
-                <span className="score-n">10</span>
-                <span className="remark">{REMARKS[i % REMARKS.length]}</span>
-              </div>
-              <h3 className="exam-q">Câu {i + 1}. {p.title}</h3>
-              <p className="exam-a">{vi(p.desc)}</p>
-              <div className="exam-tags">{(p.tags || []).map((t) => <span key={t}>{t}</span>)}</div>
+              <h3 className="pj-t">{p.title}</h3>
+              <p className="exam-a pj-d">{vi(p.desc)}</p>
+              <div className="exam-tags">{(p.tags || []).slice(0, 5).map((t) => <span key={t}>{t}</span>)}</div>
               {p.repo && <a className="exam-link" href={p.repo} target="_blank" rel="noreferrer" data-mag="0.3">Xem mã nguồn →</a>}
+              <span className="pj-line" aria-hidden="true" />
             </article>
           ))}
         </div>
-        <button className="exam-all" data-mag="0.25" onClick={() => onNav('du-an')}>🗂 Mở tủ hồ sơ: tất cả {data.projects.length} dự án →</button>
+        <button className="exam-all" data-mag="0.25" onClick={() => onNav('du-an')}>🗂 Xem tất cả {data.projects.length} dự án →</button>
       </section>
 
       {/* ================= NHẬT KÝ ================= */}

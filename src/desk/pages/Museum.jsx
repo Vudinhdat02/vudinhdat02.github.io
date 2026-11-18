@@ -187,17 +187,28 @@ function Wall({ items, onOpen }) {
   );
 }
 
-/* ---------- con đường chinh phục: mỗi thành tích là một trạm dừng, theo thứ tự thời gian ---------- */
-const CHEER = ['Xuất phát!', 'Thêm một chặng', 'Lên dốc', 'Tăng tốc', 'Vượt đèo', 'Cắm cờ', 'Qua chặng', 'Đi tiếp'];
+/* ---------- con đường chinh phục: đường ngoằn ngoèo (zig-zag) qua nhiều trạm mỗi hàng, theo thứ tự thời gian ----------
+ *  Hàng chẵn đi trái → phải, hàng lẻ đi phải → trái, cuối mỗi hàng là một khúc cua chữ U xuống hàng dưới.
+ *  Cuộn trang: đoạn đường đã đi được tô vàng, người đạp xe chạy theo, tới trạm nào trạm đó sáng lên. */
+const perRowFor = (w) => (w >= 1100 ? 4 : w >= 700 ? 3 : 2);
 function Road({ items, onOpen }) {
   const root = useRef(null);
   const [tab, setTab] = useState('all');
-  const [geo, setGeo] = useState({ w: 0, h: 0, d: '' });
+  const [per, setPer] = useState(() => perRowFor(Math.min(window.innerWidth, 1180)));
+  const [geo, setGeo] = useState({ w: 0, h: 0, d: '', s: null, e: null });
   const cats = [...new Set(items.map((a) => a.category).filter(Boolean))];
   const shown = tab === 'all' ? items : tab === 'gold' ? items.filter((a) => a.featured) : items.filter((a) => a.category === tab);
-  const firstYear = shown.length ? shown[0].year : '';
+  const rows = [];
+  for (let k = 0; k < shown.length; k += per) rows.push(shown.slice(k, k + per));
 
-  /* vẽ con đường uốn lượn đi qua tâm từng cột mốc */
+  /* số trạm mỗi hàng theo bề ngang */
+  useLayoutEffect(() => {
+    const el = root.current; if (!el) return undefined;
+    const fit = () => setPer(perRowFor(el.clientWidth));
+    fit(); const ro = new ResizeObserver(fit); ro.observe(el); return () => ro.disconnect();
+  }, []);
+
+  /* vẽ con đường đi qua tâm từng cột mốc, theo đúng thứ tự thời gian */
   useLayoutEffect(() => {
     const el = root.current; if (!el) return undefined;
     let raf = 0;
@@ -206,55 +217,84 @@ function Road({ items, onOpen }) {
       raf = requestAnimationFrame(() => {
         const box = el.querySelector('.rd-map'); if (!box) return;
         const br = box.getBoundingClientRect();
-        // fy: 0 = mép trên, 0.5 = giữa, 1 = mép dưới (đường đi ra từ đáy biển "Xuất phát", vào đỉnh biển "Chặng tiếp theo")
-        const c = (n, fy = 0.5) => { const r = n.getBoundingClientRect(); return [r.left + r.width / 2 - br.left, r.top + r.height * fy - br.top]; };
-        const all = [c(box.querySelector('.rd-start'), 1), ...[...box.querySelectorAll('.rd-mark')].map((m) => c(m)), c(box.querySelector('.rd-end'), 0)];
-        let d = `M${all[0][0].toFixed(1)} ${all[0][1].toFixed(1)}`;
-        for (let k = 1; k < all.length; k++) {
-          const [x0, y0] = all[k - 1], [x1, y1] = all[k], dy = (y1 - y0) * 0.55;
-          d += ` C${x0.toFixed(1)} ${(y0 + dy).toFixed(1)}, ${x1.toFixed(1)} ${(y1 - dy).toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+        const marks = [...box.querySelectorAll('.rd-mark')];
+        if (!marks.length) return;
+        const P = marks.map((m) => { const r = m.getBoundingClientRect(); return [r.left + r.width / 2 - br.left, r.top + r.height / 2 - br.top, +m.dataset.row]; });
+        // khúc cua chữ U phải vòng ra ngoài mép thẻ: điểm xa nhất của đường cong = 3/4 độ lệch điểm điều khiển
+        const cw = box.querySelector('.rd-card')?.offsetWidth || 200;
+        const U = (cw / 2 + 26) / 0.75, K = Math.min(90, br.width * 0.07);
+        const f = (v) => v.toFixed(1);
+        const s = [Math.max(14, P[0][0] - K * 1.4), P[0][1]];
+        let d = `M${f(s[0])} ${f(s[1])} L${f(P[0][0])} ${f(P[0][1])}`;
+        for (let k = 1; k < P.length; k++) {
+          const [x0, y0, r0] = P[k - 1], [x1, y1, r1] = P[k];
+          if (r1 !== r0) { // khúc cua chữ U xuống hàng dưới
+            const dir = r0 % 2 ? -1 : 1;
+            const room = (dir > 0 ? br.width - 8 - Math.max(x0, x1) : Math.min(x0, x1) - 8) / 0.75; // không vòng ra ngoài khung
+            const U2 = Math.max(20, Math.min(U, room));
+            d += ` C${f(x0 + dir * U2)} ${f(y0)}, ${f(x1 + dir * U2)} ${f(y1)}, ${f(x1)} ${f(y1)}`;
+          } else { // đoạn thẳng hơi lượn sóng
+            const dx = x1 - x0, wv = (k % 2 ? 1 : -1) * 16;
+            d += ` C${f(x0 + dx * 0.4)} ${f(y0 + wv)}, ${f(x1 - dx * 0.4)} ${f(y1 - wv)}, ${f(x1)} ${f(y1)}`;
+          }
         }
-        setGeo((g) => (g.d === d && g.w === br.width && g.h === br.height ? g : { w: br.width, h: br.height, d }));
+        const last = P[P.length - 1], ld = last[2] % 2 ? -1 : 1;
+        const e = [Math.min(br.width - 14, Math.max(14, last[0] + ld * K * 1.4)), last[1]];
+        d += ` L${f(e[0])} ${f(e[1])}`;
+        setGeo((g) => (g.d === d && g.w === br.width && g.h === br.height ? g : { w: br.width, h: br.height, d, s, e }));
       });
     };
     calc();
     const ro = new ResizeObserver(calc); ro.observe(el);
     el.addEventListener('load', calc, true);
     return () => { cancelAnimationFrame(raf); ro.disconnect(); el.removeEventListener('load', calc, true); };
-  }, [tab, items]);
+  }, [tab, items, per]);
 
-  /* mở màn */
+  /* mở màn: các nút lọc nảy lên */
   useLayoutEffect(() => {
     if (reduced()) return undefined;
-    const ctx = gsap.context(() => {
-      gsap.from('.rd-top > *', { y: 30, opacity: 0, duration: 0.7, stagger: 0.08, ease: 'power3.out' });
-    }, root);
+    const ctx = gsap.context(() => { gsap.fromTo('.rd-tabs button', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: 'back.out(2)', delay: 0.15, clearProps: 'transform,opacity' }); }, root);
     return () => ctx.revert();
   }, []);
 
-  /* cuộn dọc: đoạn đường đã đi được tô dạ quang, người lữ hành đạp xe theo; tới trạm nào trạm đó bật lên */
+  /* đường tự vẽ ra, các trạm bật lên theo từng hàng, xe đạp chạy theo thanh cuộn */
   useLayoutEffect(() => {
     if (!geo.d) return undefined;
     const ctx = gsap.context(() => {
-      const trail = root.current.querySelector('.rd-trail'), walker = root.current.querySelector('.rd-walker');
+      const map = root.current.querySelector('.rd-map');
+      const trail = map.querySelector('.rd-trail'), walker = map.querySelector('.rd-walker');
+      const base = map.querySelectorAll('.rd-edge, .rd-asphalt, .rd-mid');
       const len = trail.getTotalLength();
+      // vị trí (tỉ lệ trên đường) của từng trạm, để biết người đạp xe đã tới trạm nào
+      const stops = [...map.querySelectorAll('.rs')];
+      const samples = Array.from({ length: 240 }, (_, k) => { const pt = trail.getPointAtLength((k / 239) * len); return [pt.x, pt.y, k / 239]; });
+      const at = stops.map((st) => {
+        const m = st.querySelector('.rd-mark'), r = m.getBoundingClientRect(), br = map.getBoundingClientRect();
+        const x = r.left + r.width / 2 - br.left, y = r.top + r.height / 2 - br.top;
+        let best = 0, bd = Infinity; samples.forEach(([sx, sy, t]) => { const dd = (sx - x) ** 2 + (sy - y) ** 2; if (dd < bd) { bd = dd; best = t; } });
+        return best;
+      });
+      let lastX = 0;
       const place = (p) => {
         const L = Math.max(0.001, p * len);
         trail.style.strokeDashoffset = String(len - L);
-        const a = trail.getPointAtLength(L), b = trail.getPointAtLength(Math.min(len, L + 3));
-        walker.style.transform = `translate(${a.x}px, ${a.y}px) translate(-50%, -60%) scaleX(${b.x < a.x - 0.3 ? 1 : -1})`;
+        const a = trail.getPointAtLength(L);
+        const face = a.x < lastX - 0.3 ? 1 : a.x > lastX + 0.3 ? -1 : (walker.dataset.f ? +walker.dataset.f : -1);
+        walker.dataset.f = face; lastX = a.x;
+        walker.style.transform = `translate(${a.x}px, ${a.y}px) translate(-50%, -78%) scaleX(${face})`;
+        stops.forEach((st, k) => st.classList.toggle('reached', p >= at[k] - 0.004));
       };
       trail.style.strokeDasharray = `${len} ${len}`;
       place(0);
-      ScrollTrigger.create({ trigger: root.current.querySelector('.rd-map'), start: 'top 55%', end: 'bottom 55%', onUpdate: (st) => place(st.progress), onRefresh: (st) => place(st.progress) });
+      ScrollTrigger.create({ trigger: map, start: 'top 62%', end: 'bottom 62%', onUpdate: (st) => place(st.progress), onRefresh: (st) => place(st.progress) });
       if (reduced()) return;
-      gsap.utils.toArray(root.current.querySelectorAll('.rd-stop')).forEach((s) => {
-        const left = s.classList.contains('l');
-        gsap.timeline({ scrollTrigger: { trigger: s, start: 'top 80%', once: true } })
-          .from(s.querySelector('.rd-mark'), { scale: 0, rotate: -90, duration: 0.5, ease: 'back.out(2.4)' })
-          .from(s.querySelector('.rd-card'), { x: window.innerWidth < 760 ? 40 : (left ? -70 : 70), y: 24, opacity: 0, duration: 0.8, ease: 'power3.out' }, 0.08)
-          .from(s.querySelectorAll('.rd-flag, .rd-yr'), { y: 20, opacity: 0, duration: 0.5, stagger: 0.08, ease: 'power2.out' }, 0.25)
-          .fromTo(s.querySelector('.rd-won'), { scale: 2.4, opacity: 0, rotate: -30 }, { scale: 1, opacity: 0.9, rotate: -10, duration: 0.3, ease: 'power4.in' }, 0.7);
+      base.forEach((b) => { const l = b.getTotalLength(); gsap.fromTo(b, { strokeDasharray: `${l} ${l}`, strokeDashoffset: l }, { strokeDashoffset: 0, duration: 1.8, ease: 'power2.inOut', clearProps: 'strokeDasharray,strokeDashoffset', scrollTrigger: { trigger: map, start: 'top 85%', once: true } }); });
+      gsap.from(map.querySelectorAll('.rd-flagpole'), { scale: 0, duration: 0.5, ease: 'back.out(2.5)', stagger: 1.4, scrollTrigger: { trigger: map, start: 'top 85%', once: true } });
+      map.querySelectorAll('.rd-row').forEach((row, r) => {
+        const tl = gsap.timeline({ scrollTrigger: { trigger: row, start: 'top 88%', once: true } });
+        const dirx = r % 2 ? 40 : -40;
+        tl.from(row.querySelectorAll('.rd-mark'), { scale: 0, rotate: -120, duration: 0.5, ease: 'back.out(2.6)', stagger: 0.09 }, 0)
+          .from(row.querySelectorAll('.rd-card'), { y: 40, x: dirx, opacity: 0, rotate: () => gsap.utils.random(-6, 6), duration: 0.7, ease: 'power3.out', stagger: 0.09, clearProps: 'transform' }, 0.08);
       });
     }, root);
     ScrollTrigger.refresh();
@@ -263,48 +303,42 @@ function Road({ items, onOpen }) {
 
   const pick = (t) => { if (t !== tab) { setTab(t); thock(1.3); } };
   return (
-    <div className="rd" ref={root}>
-      <header className="rd-top">
-        <span className="rd-eyebrow">🏅 Thành tích</span>
-        <h1>Hành trình <em>chinh phục</em></h1>
-        <p className="rd-lead">Mỗi cột mốc là một trạm dừng trên đường. Cuộn xuống để đi tiếp, bấm vào trạm để xem giấy khen.</p>
-        <nav className="rd-tabs" aria-label="Lọc thành tích">
-          <button className={tab === 'all' ? 'on' : ''} onClick={() => pick('all')}>Tất cả</button>
-          {cats.map((c) => <button key={c} className={tab === c ? 'on' : ''} onClick={() => pick(c)}>{IC[c] || '✦'} {c}</button>)}
-          <button className={tab === 'gold' ? 'on' : ''} onClick={() => pick('gold')}>★ Tiêu biểu</button>
-        </nav>
-      </header>
+    <div className="rd rd2" ref={root}>
+      <nav className="rd-tabs" aria-label="Lọc thành tích">
+        <button className={tab === 'all' ? 'on' : ''} onClick={() => pick('all')}>Tất cả</button>
+        {cats.map((c) => <button key={c} className={tab === c ? 'on' : ''} onClick={() => pick(c)}>{IC[c] || '✦'} {c}</button>)}
+        <button className={tab === 'gold' ? 'on' : ''} onClick={() => pick('gold')}>★ Tiêu biểu</button>
+      </nav>
       {shown.length > 0 && (
-        <div className="rd-map" key={tab}>
+        <div className="rd-map" key={tab + '-' + per} style={{ '--per': per }}>
           <svg className="rd-svg" width={geo.w} height={geo.h} viewBox={`0 0 ${geo.w || 1} ${geo.h || 1}`} aria-hidden="true">
             <path className="rd-edge" d={geo.d} />
             <path className="rd-asphalt" d={geo.d} />
             <path className="rd-trail" d={geo.d} />
             <path className="rd-mid" d={geo.d} />
           </svg>
+          {geo.s && <span className="rd-flagpole start" style={{ left: geo.s[0], top: geo.s[1] }} aria-hidden="true">🚩<small>Xuất phát</small></span>}
+          {geo.e && <span className="rd-flagpole end" style={{ left: geo.e[0], top: geo.e[1] }} aria-hidden="true">🏁<small>Đi tiếp…</small></span>}
           <span className="rd-walker" aria-hidden="true">🚴</span>
-          <div className="rd-start"><b>🚩 Xuất phát</b><small>{firstYear}</small></div>
-          {shown.map((a, k) => (
-            <div key={a.id || a.n} className={`rd-stop ${k % 2 ? 'r' : 'l'} ${a.featured ? 'star' : ''}`}>
-              <span className="rd-mark" aria-hidden="true">{a.featured ? '★' : k + 1}</span>
-              <span className="rd-yr" aria-hidden="true">{a.year || ''}</span>
-              <span className="rd-flag" aria-hidden="true">{CHEER[k % CHEER.length]}</span>
-              <article className="rd-card">
-                <button className="rd-pic" onClick={(e) => onOpen(a.n, e.currentTarget)} aria-label={`Xem chi tiết: ${a.title}`}>
-                  {a.img ? <img src={a.img} alt={a.title} loading="lazy" draggable="false" style={{ aspectRatio: `${a.ar}` }} /> : <span className="rd-ph">{IC[a.category] || '✦'}</span>}
-                </button>
-                <div className="rd-body">
-                  <span className="rd-cat">{IC[a.category] || '✦'} {a.category}{a.featured ? ' · ★ Tiêu biểu' : ''}</span>
-                  <h3>{a.title}</h3>
-                  <span className="rd-date">🗓 {a.date}</span>
-                  {a.desc && <p>{linkify(a.desc)}</p>}
-                  <button className="rd-more" onClick={(e) => onOpen(a.n, e.currentTarget.closest('.rd-card').querySelector('.rd-pic'))}>Xem chi tiết →</button>
-                </div>
-                <span className="rd-won" aria-hidden="true">ĐÃ CHINH PHỤC</span>
-              </article>
+          {rows.map((row, r) => (
+            <div key={r} className={`rd-row ${r % 2 ? 'rev' : ''}`}>
+              {row.map((a) => {
+                const k = shown.indexOf(a);
+                return (
+                  <div key={a.id || a.n} className={`rs ${a.featured ? 'star' : ''}`}>
+                    <span className="rd-mark" data-row={r} aria-hidden="true">{a.featured ? '★' : k + 1}</span>
+                    <button className="rd-card" onClick={(e) => onOpen(a.n, e.currentTarget.querySelector('.rd-pic') || e.currentTarget)} aria-label={`Xem chi tiết: ${a.title}`}>
+                      <span className="rd-pic">{a.img ? <img src={a.img} alt="" loading="lazy" draggable="false" /> : <span className="rd-ph">{IC[a.category] || '✦'}</span>}</span>
+                      <span className="rd-yr">{a.year || ''}</span>
+                      <b className="rd-t">{a.title}</b>
+                      <small className="rd-date">{IC[a.category] || '✦'} {a.date}</small>
+                      <span className="rd-won" aria-hidden="true">✓</span>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           ))}
-          <div className="rd-end"><b>🏁 Chặng tiếp theo…</b><small>vẫn đang trên đường</small></div>
         </div>
       )}
       {shown.length === 0 && <p className="hw-empty">Chưa có thành tích nào ở mục này.</p>}

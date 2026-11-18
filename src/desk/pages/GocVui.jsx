@@ -1,12 +1,12 @@
 /*
  * Trang "Góc vui": máy tính phòng máy (Terminal), bài chính tả (thi gõ phím), đồng hồ lớp học (Pomodoro)
- * và mấy món đồ chơi nhỏ chủ đề IoT / drone / lập trình (Toys.jsx). Tất cả chạy offline.
+ * và sân bay drone (Toys.jsx). Tất cả chạy offline.
  */
 import { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Terminal, TypeRace, Focus } from '../apps/Apps';
-import { DroneGame, BinaryLeds, BugSmash, Morse } from '../apps/Toys';
+import { DroneGame } from '../apps/Toys';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -32,7 +32,7 @@ export default function GocVui({ onNav, onNight }) {
           <p className="gv-tip">Bấm vào màn hình rồi gõ <code>help</code>. Thử <code>sudo hire-dat</code> 😉</p>
         </article>
         <article className="gv gv-type">
-          <span className="gv-tag red">Bài kiểm tra chính tả · 30 giây</span>
+          <span className="gv-tag red">Thi gõ phím · 30 giây</span>
           <TypeRace />
         </article>
         <article className="gv gv-focus">
@@ -42,25 +42,13 @@ export default function GocVui({ onNav, onNight }) {
         </article>
       </div>
 
-      <h2 className="gv-h">Hộp đồ chơi của kỹ sư 🧰</h2>
-      <div className="gv-toys">
+      <section className="gv-airport">
+        <h2 className="gv-h">Sân bay drone 🚁</h2>
         <article className="gv gv-drone">
-          <span className="gv-tag">Sân bay drone</span>
+          <span className="gv-tag">Bãi thử · bàn số 8</span>
           <DroneGame />
         </article>
-        <article className="gv gv-bin">
-          <span className="gv-tag green">Bảng mạch 8 bit</span>
-          <BinaryLeds />
-        </article>
-        <article className="gv gv-bug">
-          <span className="gv-tag red">Săn bug · 20 giây</span>
-          <BugSmash />
-        </article>
-        <article className="gv gv-morse">
-          <span className="gv-tag">Máy điện báo</span>
-          <Morse />
-        </article>
-      </div>
+      </section>
     </div>
   );
 }
