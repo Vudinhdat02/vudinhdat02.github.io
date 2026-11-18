@@ -1,7 +1,7 @@
 /*
  * "BÀN HỌC CỦA KỸ SƯ" — phong cách trường học + bàn phím cơ, nền giấy trắng.
  * Thanh menu trên cùng: Trang chủ + các trang riêng (#du-an, #thanh-tich, #nhat-ky, #cv, #lien-he, #goc-vui).
- * Đổi trang có màn chuyển cảnh: các dải màu thẻ vở phủ xuống, tấm thẻ ghi tên trang bật lên, rồi kéo đi.
+ * Đổi trang: vào thẳng trang mới, trang cũ mờ đi còn trang mới trượt lên, thanh màu chạy trên đỉnh màn hình.
  */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -33,6 +33,7 @@ import './desk9.css';
 import './desk10.css';
 import './desk11.css';
 import './desk12.css';
+import './desk13.css';
 
 gsap.registerPlugin(ScrollTrigger);
 const vi = (v) => (typeof v === 'object' && v ? v.vi || v.en : v);
@@ -73,26 +74,22 @@ function Desk({ lenisRef }) {
       scrollTop(false);
     };
     if (reduced()) { swap(); busy.current = false; then?.(); return; }
-    const el = curtain.current, q = gsap.utils.selector(el);
-    q('.cu-title')[0].textContent = r.label;
-    q('.cu-ic')[0].textContent = r.icon;
-    q('.cu-sub')[0].textContent = r.sub;
-    el.style.setProperty('--c', r.color);
+    /* chuyển trang thẳng tới nội dung: trang cũ mờ đi + trượt lên, trang mới trượt vào (không có màn giới thiệu) */
+    const out = document.querySelector('.desk-app > main, .desk-app > .home');
+    const bar = curtain.current;
+    bar.style.setProperty('--c', r.color);
     whoosh();
     gsap.timeline({ onComplete: () => { busy.current = false; ScrollTrigger.refresh(); then?.(); } })
-      .set(el, { autoAlpha: 1 })
-      .set(q('.cu-card'), { scale: 0.2, rotate: -14, y: 60, opacity: 0 })
-      .set(q('.cu-title'), { clipPath: 'inset(0 100% 0 0)' })
-      .fromTo(q('.cu-s'), { scaleY: 0, transformOrigin: '50% 0%' }, { scaleY: 1, duration: 0.42, stagger: 0.04, ease: 'power3.in' })
-      .to(q('.cu-card'), { scale: 1, rotate: -3, y: 0, opacity: 1, duration: 0.55, ease: 'back.out(1.8)' }, '-=0.15')
-      .to(q('.cu-title'), { clipPath: 'inset(0 0% 0 0)', duration: 0.45, ease: 'power2.out' }, '-=0.25')
-      .fromTo(q('.cu-under path'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.35, ease: 'none' }, '-=0.1')
+      .set(bar, { autoAlpha: 1, scaleX: 0, transformOrigin: '0% 50%' })
+      .to(bar, { scaleX: 0.7, duration: 0.3, ease: 'power2.out' }, 0)
+      .to(out, { opacity: 0, y: -24, filter: 'blur(4px)', duration: 0.26, ease: 'power2.in' }, 0)
       .add(swap)
-      .to({}, { duration: 0.15 })
-      .to(q('.cu-card'), { y: -window.innerHeight * 0.7, rotate: 12, duration: 0.45, ease: 'power3.in' })
-      .set(q('.cu-s'), { transformOrigin: '50% 100%' }, '-=0.25')
-      .to(q('.cu-s'), { scaleY: 0, duration: 0.42, stagger: { each: 0.04, from: 'end' }, ease: 'power3.inOut' }, '-=0.3')
-      .set(el, { autoAlpha: 0 });
+      .add(() => {
+        const inn = document.querySelector('.desk-app > main, .desk-app > .home');
+        if (inn) gsap.fromTo(inn, { opacity: 0, y: 36, filter: 'blur(6px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.55, ease: 'power3.out', clearProps: 'opacity,transform,filter' });
+      }, '+=0.02')
+      .to(bar, { scaleX: 1, duration: 0.25, ease: 'power1.out' })
+      .to(bar, { autoAlpha: 0, duration: 0.3 });
   };
   useEffect(() => {
     const onPop = () => { const h = window.location.hash.slice(1); if (h === 'admin') return setAdmin(true); navigate(hashRoute(), { push: false }); };
@@ -186,16 +183,7 @@ function Desk({ lenisRef }) {
         {lightbox && <Lightbox item={lightbox.item} from={lightbox.from} onClose={() => setLightbox(null)} />}
         {admin && (!CAN_WRITE || GH_MODE) && <SignIn onClose={() => { setAdmin(false); history.replaceState(null, '', route ? '#' + route : ' '); }} />}
         <NightLamp on={night} />
-        <div className="curtain" ref={curtain} aria-hidden="true">
-          {ROUTES.map((r) => <i key={r.label} className="cu-s" style={{ background: r.color }} />)}
-          <div className="cu-card">
-            <span className="cu-pin" />
-            <span className="cu-ic" />
-            <b className="cu-title" />
-            <svg className="cu-under" viewBox="0 0 300 30" preserveAspectRatio="none"><path pathLength="1" d="M4 18 C 60 6, 120 26, 180 14 S 270 8, 296 16" /></svg>
-            <small className="cu-sub" />
-          </div>
-        </div>
+        <div className="page-bar" ref={curtain} aria-hidden="true" />
         <InkCursor />
         <InkSplash />
         <Magnets />

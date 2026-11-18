@@ -1,7 +1,8 @@
 /*
  * TRANG CHỦ — chỉ giữ những thứ tiêu biểu: giới thiệu, hành trình (vài thành tích nổi bật),
  * kỹ năng, 3 dự án, 5 trang nhật ký mới nhất và bộ thẻ mở các trang riêng.
- * Toàn bộ chuyển động khi cuộn dùng GSAP ScrollTrigger; rời trang chủ thì mọi hiệu ứng được dọn sạch.
+ * Cuộn dọc tự nhiên từ trên xuống: không ghim trang, không cuộn ngang; các mục chỉ trượt lên / hiện dần
+ * khi lọt vào màn hình (GSAP ScrollTrigger, chạy một lần). Rời trang chủ thì mọi hiệu ứng được dọn sạch.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
@@ -16,7 +17,7 @@ import aboutData from '../data/about.json';
 import { DocEditor, ListEditor, useEditable, useEditableDoc } from './Editor';
 import { STAT_BLANK, STAT_FIELDS, STAT_PREVIEW, ABOUT_FIELDS, ACH_BLANK, ACH_FIELDS, ACH_PREVIEW, PROJ_BLANK, PROJ_FIELDS, PROJ_PREVIEW, SKILL_BLANK, SKILL_FIELDS, SKILL_PREVIEW } from './fields';
 import { asset } from '../utils/asset';
-import { thock, thud, whoosh } from './sound';
+import { thock, thud } from './sound';
 import { DiaryHome, useDiary } from './Diary';
 import { ROUTES } from './routes';
 import { Bounce, Doodle, Torn, Tape, SpinBadge } from './Fx';
@@ -138,7 +139,6 @@ function HomeView({ onNav, onLightbox, data }) {
 
     const ctx = gsap.context((self) => {
       const q = gsap.utils.selector(root);
-      const mm = gsap.matchMedia();
 
       /* ====== 0. MỞ MÀN: bật máy ====== */
       const intro = gsap.timeline({ defaults: { ease: 'power3.out' } });
@@ -160,103 +160,72 @@ function HomeView({ onNav, onLightbox, data }) {
       window.addEventListener('mousemove', onMove);
       self.add(() => () => window.removeEventListener('mousemove', onMove));
 
-      /* điện thoại: rút ngắn các đoạn ghim, nội dung hiện ngay, đỡ phải cuộn mỏi tay */
+      /* Cuộn dọc là chính: không ghim, không cuộn ngang. Mỗi mục chỉ "hiện dần" khi lọt vào màn hình. */
       const MOB = window.matchMedia('(max-width: 759px)').matches;
+      const onEnter = (trigger, start = 'top 78%') => ({ trigger, start, once: true });
 
-      /* ====== 1. HERO: zoom vào màn hình CRT ====== */
-      const hero = gsap.timeline({ scrollTrigger: { trigger: '.hero', start: 'top top', end: MOB ? '+=70%' : '+=140%', scrub: 1, pin: true, anticipatePin: 1 } });
-      hero
-        .to(q('.hero-hint'), { opacity: 0, y: 30, duration: 0.15 }, 0)
-        .to(q('.kb'), { yPercent: 120, rotateX: 55, opacity: 0, duration: 0.6 }, 0)
-        .to(q('.note-a'), { x: '-70vw', y: '-30vh', rotate: -70, duration: 0.6 }, 0)
-        .to(q('.note-b'), { x: '70vw', y: '-20vh', rotate: 80, duration: 0.6 }, 0.03)
-        .to(q('.pencil'), { x: '-60vw', rotate: -200, duration: 0.6 }, 0.05)
-        .to(q('.ruler'), { x: '60vw', y: '40vh', rotate: 60, duration: 0.6 }, 0.02)
-        .to(q('.mug'), { x: '50vw', y: '-40vh', rotate: 30, duration: 0.6 }, 0.04)
-        .to(q('.eraser'), { x: '-40vw', y: '50vh', rotate: -120, duration: 0.6 }, 0.06)
-        .to(q('.crt'), { scale: 3.2, yPercent: 18, duration: 0.85, ease: 'power2.in' }, 0.1)
-        .to(q('.crt-glare'), { opacity: 0.9, duration: 0.5 }, 0.45)
-        .fromTo(q('.hero-wipe'), { clipPath: 'circle(0% at 50% 45%)' }, { clipPath: 'circle(150% at 50% 45%)', duration: 0.3, ease: 'power2.in' }, 0.8);
+      /* ====== 1. HERO: dòng gợi ý mờ dần khi cuộn qua (không giữ trang lại) ====== */
+      gsap.to(q('.hero-hint'), { opacity: 0, y: 20, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '25% top', scrub: true } });
 
-      /* ====== 2. GIỚI THIỆU: trang vở ====== */
-      const about = gsap.timeline({ scrollTrigger: MOB
-        ? { trigger: '.about', start: 'top 70%', toggleActions: 'play none none none' }
-        : { trigger: '.about', start: 'top top', end: '+=140%', scrub: 1, pin: true } });
-      if (MOB) about.timeScale(0.55);
+      /* ====== 2. GIỚI THIỆU: trang vở trượt lên, chữ hiện dần ====== */
+      const about = gsap.timeline({ scrollTrigger: onEnter('.about', 'top 72%') });
       about
-        .from(q('.about .notebook'), { y: 120, rotate: -4, duration: 0.25 }, 0)
-        .fromTo(q('.about .hw-title'), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.2, ease: 'none' }, 0.1)
-        .from(q('.about .polaroid'), { x: 200, rotate: 25, opacity: 0, duration: 0.25 }, 0.12)
-        .from(q('.about .tape'), { scaleX: 0, duration: 0.08 }, 0.35)
-        .to(q('.about .w'), { opacity: 1, color: '#1f2f6e', stagger: 0.012, duration: 0.05, ease: 'none' }, 0.25)
-        .to(q('.about .hl'), { backgroundSize: '100% 100%', stagger: 0.08, duration: 0.12, ease: 'none' }, 0.5)
-        .fromTo(q('.about .doodle path'), { strokeDashoffset: 400 }, { strokeDashoffset: 0, stagger: 0.04, duration: 0.2, ease: 'none' }, 0.55)
-        .from(q('.about .stat'), { y: 40, opacity: 0, rotate: () => gsap.utils.random(-12, 12), stagger: 0.05, duration: 0.12 }, 0.7);
+        .from(q('.about .notebook'), { y: 70, opacity: 0, duration: 0.8, ease: 'power3.out' }, 0)
+        .fromTo(q('.about .hw-title'), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.6, ease: 'power2.out' }, 0.3)
+        .from(q('.about .polaroid'), { y: 60, rotate: 14, opacity: 0, duration: 0.8, ease: 'back.out(1.5)' }, 0.35)
+        .from(q('.about .tape'), { scaleX: 0, duration: 0.3 }, 0.9)
+        .to(q('.about .w'), { opacity: 1, stagger: 0.008, duration: 0.3, ease: 'none' }, 0.45)
+        .to(q('.about .hl'), { backgroundSize: '100% 100%', stagger: 0.12, duration: 0.4, ease: 'power1.out' }, 1)
+        .fromTo(q('.about .doodle path'), { strokeDashoffset: 400 }, { strokeDashoffset: 0, stagger: 0.1, duration: 0.7, ease: 'none' }, 1)
+        .from(q('.about .stat'), { y: 30, opacity: 0, stagger: 0.08, duration: 0.5, ease: 'back.out(1.6)' }, 1.1);
       q('.about .stat-n[data-to]').forEach((el) => {
         const to = parseFloat(el.dataset.to), dec = el.dataset.dec ? +el.dataset.dec : 0, obj = { v: 0 };
-        about.to(obj, { v: to, duration: 0.15, ease: 'none', onUpdate: () => { el.textContent = (el.dataset.pre || '') + obj.v.toFixed(dec) + (el.dataset.suf || ''); } }, 0.75);
+        about.to(obj, { v: to, duration: 1, ease: 'power2.out', onUpdate: () => { el.textContent = (el.dataset.pre || '') + obj.v.toFixed(dec) + (el.dataset.suf || ''); } }, 1.2);
       });
 
-      /* ====== 3. HÀNH TRÌNH: cuộn ngang, bút chì kẻ đường thời gian ====== */
-      mm.add('(min-width: 760px)', () => {
-        const track = q('.jr-track')[0];
-        const dist = () => track.scrollWidth - window.innerWidth;
-        const horiz = gsap.timeline({ scrollTrigger: { trigger: '.journey', start: 'top top', end: () => '+=' + dist(), scrub: 1, pin: true, invalidateOnRefresh: true } });
-        horiz.to(track, { x: () => -dist(), ease: 'none', duration: 1 }, 0)
-          .fromTo(q('.jr-line'), { scaleX: 0 }, { scaleX: 1, ease: 'none', duration: 1 }, 0)
-          .fromTo(q('.jr-pencil'), { left: '0%' }, { left: '100%', ease: 'none', duration: 1 }, 0);
-        q('.jr-card').forEach((card, i) => {
-          gsap.from(card, { y: i % 2 ? 160 : -160, rotate: (i % 2 ? 1 : -1) * 18, opacity: 0, duration: 0.8, ease: 'back.out(1.5)', scrollTrigger: { trigger: card, containerAnimation: horiz, start: 'left 92%', toggleActions: 'play none none reverse' } });
-          const stamp = card.querySelector('.stamp');
-          gsap.fromTo(stamp, { scale: 3.2, opacity: 0, rotate: -40 }, { scale: 1, opacity: 0.88, rotate: -14, duration: 0.28, ease: 'power4.in', scrollTrigger: { trigger: card, containerAnimation: horiz, start: 'left 58%', toggleActions: 'play none none reverse', onEnter: () => setTimeout(thud, 260) },
-            onComplete: () => gsap.fromTo(card, { x: -4 }, { x: 0, duration: 0.3, ease: 'elastic.out(1, 0.3)' }) });
-        });
-        gsap.to(q('.jr-year'), { yPercent: -40, ease: 'none', scrollTrigger: { trigger: '.journey', start: 'top top', end: () => '+=' + dist(), scrub: true } });
+      /* ====== 3. HÀNH TRÌNH: đường thời gian dọc, nét kẻ chạy theo tiến độ cuộn ====== */
+      gsap.fromTo(q('.hj-line i'), { scaleY: 0 }, { scaleY: 1, ease: 'none', scrollTrigger: { trigger: '.hj-list', start: 'top 70%', end: 'bottom 70%', scrub: true } });
+      q('.hj-item').forEach((it, i) => {
+        const card = it.querySelector('.jr-card'), stamp = it.querySelector('.stamp'), dot = it.querySelector('.hj-dot');
+        const tl = gsap.timeline({ scrollTrigger: onEnter(it, 'top 84%') });
+        tl.from(dot, { scale: 0, duration: 0.4, ease: 'back.out(3)' }, 0)
+          .from(card, { x: MOB ? 40 : (i % 2 ? 80 : -80), y: 30, opacity: 0, duration: 0.8, ease: 'power3.out' }, 0.05);
+        if (stamp) tl.fromTo(stamp, { scale: 2.6, opacity: 0, rotate: -40 }, { scale: 1, opacity: 0.88, rotate: -14, duration: 0.3, ease: 'power4.in', onComplete: () => thud() }, 0.6);
       });
-      mm.add('(max-width: 759px)', () => {
-        gsap.from(q('.jr-card'), { y: 60, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'back.out(1.4)', scrollTrigger: { trigger: '.jr-track', start: 'top 85%' } });
-      });
+      gsap.from(q('.hj-all'), { scale: 0.6, opacity: 0, duration: 0.6, ease: 'back.out(2)', scrollTrigger: onEnter('.hj-all', 'top 92%') });
 
       /* ====== 4. KỸ NĂNG: phím rơi xuống bảng đen ====== */
-      gsap.fromTo(q('.board .chalk-title'), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', ease: 'none', scrollTrigger: { trigger: '.board', start: 'top 75%', end: 'top 35%', scrub: 1 } });
-      gsap.from(q('.board .sk-label'), { x: -60, opacity: 0, stagger: 0.12, duration: 0.6, scrollTrigger: { trigger: '.board', start: 'top 60%' } });
+      gsap.fromTo(q('.board .chalk-title'), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.8, ease: 'power2.out', scrollTrigger: onEnter('.board', 'top 75%') });
+      gsap.from(q('.board .sk-label'), { x: -40, opacity: 0, stagger: 0.1, duration: 0.5, scrollTrigger: onEnter('.board', 'top 65%') });
       gsap.from(q('.board .sk-cap'), {
-        y: () => -window.innerHeight * (MOB ? 0.25 : 0.9), rotate: () => gsap.utils.random(-70, 70) * (MOB ? 0.3 : 1), opacity: 0,
-        stagger: { each: MOB ? 0.02 : 0.035, from: 'random' }, duration: MOB ? 0.6 : 1.1, ease: MOB ? 'back.out(1.6)' : 'bounce.out',
-        scrollTrigger: { trigger: '.board', start: 'top 55%', toggleActions: 'play none none reverse', onEnter: () => { let n = 0; const id = setInterval(() => { thock(0.8 + Math.random() * 0.6); if (++n > 10) clearInterval(id); }, 90); } },
+        y: -60, rotate: () => gsap.utils.random(-25, 25), opacity: 0,
+        stagger: { each: 0.02, from: 'random' }, duration: 0.7, ease: 'back.out(1.7)',
+        scrollTrigger: { ...onEnter('.board', 'top 60%'), onEnter: () => { let n = 0; const id = setInterval(() => { thock(0.8 + Math.random() * 0.6); if (++n > 8) clearInterval(id); }, 90); } },
       });
       gsap.to(q('.board .eraser-swipe'), { xPercent: 900, ease: 'none', scrollTrigger: { trigger: '.board', start: 'top 80%', end: 'bottom 20%', scrub: 1 } });
-      gsap.to(q('.board .smudge'), { opacity: 0, ease: 'none', stagger: 0.1, scrollTrigger: { trigger: '.board', start: 'top 70%', end: 'center 40%', scrub: 1 } });
-      gsap.fromTo(q('.board'), { rotateX: 18, scale: 0.92 }, { rotateX: 0, scale: 1, ease: 'none', scrollTrigger: { trigger: '.skills', start: 'top bottom', end: 'top 25%', scrub: 1 } });
+      gsap.to(q('.board .smudge'), { opacity: 0, stagger: 0.1, duration: 1, scrollTrigger: onEnter('.board', 'top 60%') });
 
-      /* ====== 5. DỰ ÁN: chồng bài kiểm tra, mỗi bài bay đi khi cuộn ====== */
-      const papers = q('.paper');
-      const n = papers.length;
-      papers.forEach((p, i) => gsap.set(p, { zIndex: n - i, rotate: i === 0 ? 0 : gsap.utils.random(-5, 5), scale: 1 - Math.min(i, 3) * 0.03, y: Math.min(i, 3) * 14 }));
-      const proj = gsap.timeline({ scrollTrigger: { trigger: '.projects', start: 'top top', end: () => '+=' + n * (MOB ? 45 : 75) + '%', scrub: 1, pin: true, invalidateOnRefresh: true,
-        onUpdate: (st) => { const k = Math.min(n, Math.floor(st.progress * n * 0.999) + 1); const c = q('.exam-count b')[0]; if (c && c.textContent !== String(k)) c.textContent = k; } } });
-      proj.fromTo(q('.paper')[0].querySelectorAll('.score path'), { strokeDashoffset: 300 }, { strokeDashoffset: 0, duration: 0.3, ease: 'none' }, 0)
-        .from(q('.paper')[0].querySelectorAll('.score-n, .remark'), { opacity: 0, scale: 1.6, duration: 0.15 }, 0.2);
-      papers.forEach((p, i) => {
-        if (i === n - 1) return;
-        const at = i + 0.5, dir = i % 2 ? 1 : -1;
-        proj.to(p, { xPercent: dir * 140, yPercent: -25, rotate: dir * 35, opacity: 0, duration: 0.9, ease: 'power2.in', onStart: whoosh }, at);
-        papers.slice(i + 1).forEach((rest, j) => proj.to(rest, { y: Math.min(j, 3) * 14, scale: 1 - Math.min(j, 3) * 0.03, ...(j === 0 ? { rotate: 0 } : {}), duration: 0.6 }, at + 0.3));
-        const next = papers[i + 1];
-        proj.fromTo(next.querySelectorAll('.score path'), { strokeDashoffset: 300 }, { strokeDashoffset: 0, duration: 0.3, ease: 'none' }, at + 0.7)
-          .from(next.querySelectorAll('.score-n, .remark'), { opacity: 0, scale: 1.6, duration: 0.15 }, at + 0.9);
+      /* ====== 5. DỰ ÁN: từng bài kiểm tra trượt lên, cô giáo khoanh điểm ====== */
+      q('.hpj-grid .paper').forEach((p, i) => {
+        gsap.timeline({ scrollTrigger: onEnter(p, 'top 86%') })
+          .from(p, { y: 70, rotate: (i % 2 ? 3 : -3), opacity: 0, duration: 0.8, ease: 'power3.out' }, MOB ? 0 : (i % 3) * 0.12)
+          .fromTo(p.querySelectorAll('.score path'), { strokeDashoffset: 300 }, { strokeDashoffset: 0, duration: 0.5, ease: 'power1.inOut' }, '-=0.2')
+          .from(p.querySelectorAll('.score-n, .remark'), { opacity: 0, scale: 1.6, duration: 0.3, ease: 'back.out(2)' }, '-=0.15');
       });
-      proj.to({}, { duration: 0.5 });
+      gsap.from(q('.exam-all'), { y: 20, opacity: 0, duration: 0.5, scrollTrigger: onEnter('.exam-all', 'top 95%') });
 
       /* ====== 6. THẺ MỤC LỤC: xoè ra như bộ bài ====== */
-      gsap.from(q('.deck .rc'), { y: 260, rotate: (i) => (i - 2.5) * 22, opacity: 0, stagger: 0.07, duration: 1, ease: 'back.out(1.3)', clearProps: 'transform', scrollTrigger: { trigger: '.deck', start: 'top 85%' } });
-      gsap.fromTo(q('.more .doo-big path'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, ease: 'none', scrollTrigger: { trigger: '.more', start: 'top 80%', end: 'top 30%', scrub: 1 } });
+      gsap.from(q('.deck .rc'), { y: 120, rotate: (i) => (i - 2.5) * 10, opacity: 0, stagger: 0.07, duration: 0.9, ease: 'back.out(1.3)', clearProps: 'transform', scrollTrigger: onEnter('.deck', 'top 85%') });
+      gsap.fromTo(q('.more .doo-big path'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.4, ease: 'power1.inOut', scrollTrigger: onEnter('.more', 'top 80%') });
+
+      /* tiêu đề mục: trượt lên khi tới */
+      q('.sec-title').forEach((t) => gsap.from(t, { y: 30, opacity: 0, duration: 0.7, ease: 'power3.out', scrollTrigger: onEnter(t, 'top 90%') }));
 
       /* băng keo chữ trượt vào */
-      q('.tape-band').forEach((t, i) => gsap.from(t, { xPercent: i % 2 ? 30 : -30, opacity: 0, duration: 1.1, ease: 'power3.out', scrollTrigger: { trigger: t, start: 'top 95%' } }));
+      q('.tape-band').forEach((t, i) => gsap.from(t, { xPercent: i % 2 ? 20 : -20, opacity: 0, duration: 1.1, ease: 'power3.out', scrollTrigger: onEnter(t, 'top 95%') }));
 
-      /* ảnh, giấy nhớ trong mục giới thiệu trôi nhẹ theo cuộn (parallax) */
-      q('[data-par]').forEach((el) => gsap.to(el, { yPercent: -+el.dataset.par, ease: 'none', scrollTrigger: { trigger: el.closest('section'), start: 'top bottom', end: 'bottom top', scrub: true } }));
+      /* ảnh, giấy nhớ trong mục giới thiệu trôi nhẹ theo cuộn (parallax, không giữ trang) */
+      if (!MOB) q('[data-par]').forEach((el) => gsap.to(el, { yPercent: -+el.dataset.par, ease: 'none', scrollTrigger: { trigger: el.closest('section'), start: 'top bottom', end: 'bottom top', scrub: true } }));
     }, root);
 
     // ảnh tải xong thì đo lại kích thước cho đúng
@@ -275,7 +244,7 @@ function HomeView({ onNav, onLightbox, data }) {
   return (
     <div ref={root} className="home">
       {/* ================= HERO ================= */}
-      <div className="pin-wrap"><section className="hero">
+      <section className="hero">
         <div className="desk-surface" />
         <div className="desk-item note-a" data-depth="1.4"><div className="sticky yellow">TODO:{(about.todo || []).map((t, i) => <span key={i}><br />{t}</span>)}</div></div>
         <div className="desk-item note-b" data-depth="1.1"><div className="sticky pink">Nhấn phím<br /><b>1 → 7</b><br />để mở từng trang ✍</div></div>
@@ -321,12 +290,11 @@ function HomeView({ onNav, onLightbox, data }) {
         <Doodle kind="spark" className="hd hd1" color="#f08a24" />
         <Doodle kind="star" className="hd hd2" color="#3b6fd8" delay={0.4} />
         <Doodle kind="swirl" className="hd hd3" color="#d33a2c" delay={0.8} />
-        <p className="hero-hint">cuộn xuống để “vào” màn hình <span>↓</span></p>
-        <div className="hero-wipe" />
-      </section></div>
+        <p className="hero-hint">cuộn xuống để xem tiếp <span>↓</span></p>
+      </section>
 
       {/* ================= GIỚI THIỆU ================= */}
-      <div className="pin-wrap"><section className="about paper-bg" id="muc-gioi-thieu">
+      <section className="about paper-bg" id="muc-gioi-thieu">
         <div className="notebook">
           <div className="spiral">{Array.from({ length: 14 }, (_, i) => <i key={i} />)}</div>
           <div className="nb-page">
@@ -347,30 +315,34 @@ function HomeView({ onNav, onLightbox, data }) {
         <div className="about-stickers" aria-hidden="true">
           <span className="stk s1" data-par="40">React</span><span className="stk s2" data-par="70">IoT ⚡</span><span className="stk s3" data-par="25">C# · .NET</span><span className="stk s4" data-par="55">☕ ×3</span>
         </div>
-      </section></div>
+      </section>
 
       {/* ================= HÀNH TRÌNH ================= */}
-      <div className="pin-wrap"><section className="journey cork" id="muc-hanh-trinh">
-        <h2 className="sec-title on-cork"><Bounce text="Hành trình" /> <span className="emo">📌</span></h2>
-        <p className="jr-swipe" aria-hidden="true">vuốt ngang để xem tiếp →</p>
-        <div className="jr-track">
-          <div className="jr-line"><span className="jr-pencil" /></div>
+      <section className="journey hj" id="muc-hanh-trinh">
+        <h2 className="sec-title"><Bounce text="Hành trình" /> <span className="emo">📌</span></h2>
+        <div className="hj-list">
+          <span className="hj-line" aria-hidden="true"><i /></span>
           {ACH_HOME.map((a, i) => (
-            <article key={a.id || a.title} className={`jr-card ${i % 2 ? 'low' : 'high'}`} style={{ '--r': `${((i * 37) % 9) - 4}deg` }}
-              onClick={(e) => a.image && onLightbox({ item: { src: a.image, title: a.title, sub: `${a.date}${a.desc ? ' · ' + a.desc : ''}` }, from: e.currentTarget.querySelector('img')?.getBoundingClientRect() })}>
-              <span className="pin" />
-              <div className="jr-photo">{a.image && <img src={asset(a.image)} alt={a.title} loading="lazy" />}</div>
-              <span className="jr-year">{a.date}</span>
-              <h3>{a.title}</h3>
-              {a.desc && <p>{a.desc}</p>}
-              <span className="stamp">{stampFor(a)}</span>
-            </article>
+            <div key={a.id || a.title} className={`hj-item ${i % 2 ? 'r' : 'l'}`}>
+              <span className="hj-dot" aria-hidden="true"><b>{String(a.date).match(/\d{4}/g)?.pop() || '★'}</b></span>
+              <article className="jr-card" style={{ '--r': `${((i * 37) % 5) - 2}deg` }}
+                onClick={(e) => a.image && onLightbox({ item: { src: a.image, title: a.title, sub: `${a.date}${a.desc ? ' · ' + a.desc : ''}` }, from: e.currentTarget.querySelector('img')?.getBoundingClientRect() })}>
+                <span className="pin" />
+                <div className="jr-photo">{a.image && <img src={asset(a.image)} alt={a.title} loading="lazy" />}</div>
+                <div className="jr-txt">
+                  <span className="jr-year">{a.date}</span>
+                  <h3>{a.title}</h3>
+                  {a.desc && <p>{a.desc}</p>}
+                </div>
+                <span className="stamp">{stampFor(a)}</span>
+              </article>
+            </div>
           ))}
-          <button className="jr-end jr-all" onClick={() => onNav('thanh-tich')} data-mag="0.2">
-            <span className="pin" /><b>+{ACHS.length - ACH_HOME.length}</b><span>Xem tất cả {ACHS.length} thành tích →</span>
-          </button>
         </div>
-      </section></div>
+        <button className="hj-all" onClick={() => onNav('thanh-tich')} data-mag="0.2">
+          <b>+{Math.max(0, ACHS.length - ACH_HOME.length)}</b><span>Đi tiếp con đường: xem cả {ACHS.length} thành tích →</span>
+        </button>
+      </section>
 
       <div className="tapes" aria-hidden="true">
         <Tape items={ALL_SKILLS.slice(0, 14)} tilt={-3} />
@@ -399,10 +371,9 @@ function HomeView({ onNav, onLightbox, data }) {
       </section>
 
       {/* ================= DỰ ÁN ================= */}
-      <div className="pin-wrap"><section className="projects paper-bg" id="muc-du-an">
+      <section className="projects hpj paper-bg" id="muc-du-an">
         <h2 className="sec-title"><Bounce text="Bài kiểm tra · Dự án" /> <span className="emo">📝</span></h2>
-        <p className="exam-count">Bài <b>1</b> / {PROJ_HOME.length}</p>
-        <div className="exam-stack">
+        <div className="hpj-grid">
           {PROJ_HOME.map((p, i) => (
             <article key={p.id || p.title} className="paper">
               <header className="exam-head">
@@ -423,7 +394,7 @@ function HomeView({ onNav, onLightbox, data }) {
           ))}
         </div>
         <button className="exam-all" data-mag="0.25" onClick={() => onNav('du-an')}>🗂 Mở tủ hồ sơ: tất cả {data.projects.length} dự án →</button>
-      </section></div>
+      </section>
 
       {/* ================= NHẬT KÝ ================= */}
       <DiaryHome limit={8} perRow={4} onOpenAll={() => onNav('nhat-ky')} />

@@ -9,9 +9,7 @@ import Footer from '../Footer';
 import ProjectsPage from './ProjectsPage';
 import AchievementsPage from './AchievementsPage';
 import { CvPage, ContactPage } from './SimplePages';
-import { DiaryBoard, useDiary } from '../Diary';
-import projects from '../../data/projects.json';
-import achievements from '../../data/achievements.json';
+import { DiaryBoard } from '../Diary';
 import { thock } from '../sound';
 
 const GocVui = lazy(() => import('./GocVui'));
@@ -22,15 +20,13 @@ const TAPES = {
   'nhat-ky': ['Hôm nay', 'Một tấm ảnh', 'Vài dòng', 'Kỷ niệm', 'Dây phơi', 'Thả tim'],
   cv: ['Kinh nghiệm', 'Học vấn', 'Kỹ năng', 'Chứng chỉ', 'In ngay'],
   'lien-he': ['Hợp tác', 'Tuyển dụng', 'Hỏi bài', 'Cà phê', 'Viết thư'],
-  'goc-vui': ['help', 'sudo hire-dat', 'matrix', 'WPM', 'Pomodoro', 'coffee'],
+  'goc-vui': ['help', 'sudo hire-dat', 'Drone', 'LED 8 bit', 'Săn bug', 'Morse', 'WPM', 'Pomodoro'],
 };
 
 export default function SubPage({ id, onNav, onNight }) {
   const i = routeIndex(id);
   const r = ROUTES[i];
   const next = ROUTES[i + 1] || ROUTES[1];
-  const { posts } = useDiary();
-  const count = { 'du-an': `${projects.length} dự án`, 'thanh-tich': `${achievements.length} thành tích`, 'nhat-ky': `${posts.length} trang nhật ký` }[id];
   return (
     <main className={`page page-${id}`} style={{ '--c': r.color }}>
       {id === 'thanh-tich' ? (
@@ -41,11 +37,10 @@ export default function SubPage({ id, onNav, onNight }) {
         <div className="pg-title-row">
           <span className="pgh-ic">{r.icon}</span>
           <div>
-            <Bounce as="h1" className="pg-title" text={r.label} immediate delay={0.6} />
-            <Doodle kind="under" className="pg-under" color={r.color} width={5} delay={1} />
+            <Bounce as="h1" className="pg-title" text={r.label} immediate delay={0.15} />
+            <Doodle kind="under" className="pg-under" color={r.color} width={5} delay={0.4} />
           </div>
         </div>
-        <p className="pg-sub">{r.sub}{count && <> · <b>{count}</b></>}</p>
         <SpinBadge className="pg-badge" center={r.icon} />
         <Doodle kind="star" className="pg-d1" color="#f5c542" delay={1.2} />
         <Doodle kind="arrow" className="pg-d2" color="#d33a2c" delay={1.4} />

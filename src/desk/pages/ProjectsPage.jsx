@@ -293,14 +293,18 @@ export default function ProjectsPage() {
     return tl;
   };
 
+  /* các tab hồ sơ bật lên một lần khi mở trang (tách riêng để không bị kẹt giữa chừng khi danh sách cập nhật) */
+  useLayoutEffect(() => {
+    if (reduced()) return undefined;
+    const tw = gsap.fromTo(root.current.querySelectorAll('.hs-tabs button'), { y: 30, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.07, duration: 0.5, ease: 'back.out(2)', delay: 0.3, clearProps: 'transform,opacity' });
+    return () => { tw.progress(1).kill(); };
+  }, []);
+
   useLayoutEffect(() => {
     if (reduced()) return undefined;
     const ctx = gsap.context(() => {
       const q = gsap.utils.selector(root);
-      if (first.current) {
-        first.current = false;
-        gsap.from(q('.hs-tabs button'), { y: 30, opacity: 0, stagger: 0.07, duration: 0.5, ease: 'back.out(2)', delay: 0.3 });
-      }
+      first.current = false;
       const cards = q('.hp-slot');
       gsap.set(cards, { opacity: 0 });
       ScrollTrigger.create({ trigger: q('.hp-grid')[0], start: 'top 80%', once: true, onEnter: () => deal(cards, q('.hp-stack')[0]) });

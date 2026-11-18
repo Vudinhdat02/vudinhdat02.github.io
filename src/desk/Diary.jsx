@@ -254,6 +254,49 @@ function useSwing(root, scroller, deps) {
 }
 
 /* ================================================================
+ *  Dây phơi: chia bài thành từng hàng vừa khít bề ngang khung, mỗi hàng một sợi dây riêng.
+ *  Dây nằm gọn trong khung (không tràn ra mép nên không bị cắt), kẹp gỗ của từng tấm ảnh
+ *  đặt đúng độ võng của dây tại vị trí đó.
+ * ================================================================ */
+const ROPE_Y = (t) => 8 + 2 * t * (1 - t) * 64; // dây: M0 8 Q 500 72 1000 8 (đơn vị px vì khung cao 60px, không co giãn theo chiều dọc)
+function usePerRow(ref, max) {
+  const guess = () => { const w = Math.min(window.innerWidth, 1240) - 40; return Math.max(1, Math.min(max, Math.floor(w / (window.innerWidth < 760 ? 166 : 260)))); };
+  const [n, setN] = useState(guess);
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el) return undefined;
+    const fit = () => {
+      const w = el.clientWidth, cw = window.innerWidth < 760 ? 156 : 236, gap = cw < 200 ? 10 : 30;
+      setN(Math.max(1, Math.min(max, Math.floor((w + gap) / (cw + gap)))));
+    };
+    fit(); const ro = new ResizeObserver(fit); ro.observe(el); return () => ro.disconnect();
+  }, [max]); // eslint-disable-line react-hooks/exhaustive-deps
+  return n;
+}
+function Clothesline({ items, max = 4, label }) {
+  const ref = useRef(null);
+  const per = usePerRow(ref, max);
+  const rows = [];
+  for (let k = 0; k < items.length; k += per) rows.push(items.slice(k, k + per));
+  return (
+    <div className="cl-wrap" ref={ref}>
+      {rows.map((row, r) => (
+        <div className="dy-line cl-line" key={r}>
+          <svg className="rope cl-rope" viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 8 Q 500 72 1000 8" /></svg>
+          <i className="cl-hook l" aria-hidden="true" /><i className="cl-hook r" aria-hidden="true" />
+          {label && r === 0 && <span className="dy-month">{label}</span>}
+          <div className="cl-row" style={{ '--per': per }}>
+            {row.map(({ p, i }, j) => {
+              const t = (j + 0.5) / per;
+              return <div className="cl-slot" key={p.id || i} style={{ paddingTop: Math.round(ROPE_Y(t) + 14) }}><Polaroid p={p} i={i} n={j} /></div>;
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ================================================================
  *  Trang chủ: một dây phơi, vài bài mới nhất
  * ================================================================ */
 export function DiaryHome({ limit = 8, perRow = 4, onOpenAll }) {
@@ -267,13 +310,11 @@ export function DiaryHome({ limit = 8, perRow = 4, onOpenAll }) {
     const ctx = gsap.context(() => {
       const q = gsap.utils.selector(root);
       const st = { refreshPriority: -1 };
-      gsap.fromTo(q('.dy-title'), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', ease: 'none', scrollTrigger: { trigger: q('.dy-title')[0], start: 'top 85%', end: 'top 55%', scrub: 1, ...st } });
+      gsap.fromTo(q('.dy-title'), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.8, ease: 'power2.out', scrollTrigger: { trigger: q('.dy-title')[0], start: 'top 85%', once: true, ...st } });
       q('.dy-line').forEach((line) => {
-        const rope = line.querySelector('.rope path');
-        if (rope) { const len = rope.getTotalLength(); gsap.fromTo(rope, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, ease: 'none', scrollTrigger: { trigger: line, start: 'top 90%', end: 'top 45%', scrub: 1, ...st } }); }
-        gsap.from(line.querySelectorAll('.hang'), { y: -200, opacity: 0, rotate: () => gsap.utils.random(-30, 30), duration: 1.3, ease: 'elastic.out(1, 0.4)', stagger: 0.12, scrollTrigger: { trigger: line, start: 'top 72%', toggleActions: 'play none none reverse', ...st } });
+        gsap.from(line.querySelectorAll('.hang'), { y: -90, opacity: 0, rotate: () => gsap.utils.random(-14, 14), duration: 1.2, ease: 'elastic.out(1, 0.5)', stagger: 0.1, scrollTrigger: { trigger: line, start: 'top 80%', once: true, ...st } });
       });
-      gsap.from(q('.dy-more'), { scale: 0, rotate: -20, duration: 0.6, ease: 'back.out(2)', scrollTrigger: { trigger: q('.dy-more')[0], start: 'top 90%', ...st } });
+      gsap.from(q('.dy-more'), { scale: 0, rotate: -20, duration: 0.6, ease: 'back.out(2)', scrollTrigger: { trigger: q('.dy-more')[0], start: 'top 92%', once: true, ...st } });
     }, root);
     ScrollTrigger.refresh();
     return () => ctx.revert();
@@ -285,12 +326,7 @@ export function DiaryHome({ limit = 8, perRow = 4, onOpenAll }) {
         <p className="dy-sub">Vài tấm mới nhất. Bấm vào ảnh để mở sổ, bấm ♡ để thả tim.</p>
         {CAN_WRITE && <button className="dy-write" onClick={openNew}>✍ Viết nhật ký hôm nay</button>}
       </header>
-      {Array.from({ length: Math.ceil(shown.length / perRow) || 1 }, (_, r) => (
-        <div className="dy-line" key={r}>
-          <svg className="rope" viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true"><path d={r % 2 ? 'M0 14 Q 500 62 1000 6' : 'M0 10 Q 500 70 1000 10'} /></svg>
-          <div className="dy-cards">{shown.slice(r * perRow, (r + 1) * perRow).map((p, j) => <Polaroid key={p.id || r * perRow + j} p={p} i={r * perRow + j} />)}</div>
-        </div>
-      ))}
+      <Clothesline items={shown.map((p, i) => ({ p, i }))} max={perRow} />
       <div className="dy-more-row"><button className="dy-more" onClick={(e) => onOpenAll(e.currentTarget.getBoundingClientRect())}>Mở cả cuốn nhật ký ({posts.length} trang) →</button></div>
     </section>
   );
@@ -355,13 +391,7 @@ export function DiaryBoard() {
       {DEMO && !EDIT_MODE && <p className="dy-demo">Bản xem thử: bạn viết thử được, nhưng bài chỉ nằm trong trình duyệt này.</p>}
       {!list.length && <p className="dy-empty">Không có trang nào khớp ✎</p>}
 
-      {mode === 'line' && groupByMonth(list).map((g) => (
-        <div className="dy-line" key={g.key}>
-          <svg className="rope" viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 10 Q 500 70 1000 10" /></svg>
-          <span className="dy-month">{g.key}</span>
-          <div className="dy-cards">{g.posts.map(({ p, i }, n) => <Polaroid key={p.id || i} p={p} i={i} n={n} />)}</div>
-        </div>
-      ))}
+      {mode === 'line' && groupByMonth(list).map((g) => <Clothesline key={g.key} items={g.posts} max={5} label={g.key} />)}
       {mode === 'film' && (
         <div className="film" ref={film}>
           <div className="film-strip">{list.map(({ p, i }) => <Polaroid key={p.id || i} p={p} i={i} peg={false} />)}</div>
