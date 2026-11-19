@@ -1,5 +1,6 @@
 /*
- * Trang "Thành tích": truyện tranh hoạt hình "Hành trình của mình", mỗi năm một chương (StoryBook). Trang này không phát âm thanh.
+ * Trang "Thành tích": "Phiêu lưu ký" qua Vùng đất Tri Thức, mỗi năm một vùng đất, mỗi thành tích một nhiệm vụ (AdventureBook).
+ * Trang này không phát âm thanh.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -54,83 +55,142 @@ const Medal = () => (
   </span>
 );
 
-/* ---------- truyện tranh "Hành trình của mình": mỗi năm là một chương ----------
- *  Bên trái: một cảnh hoạt hình (bầu trời, mặt trời, mây, trường lớp đổi theo chương, nhân vật đeo cặp đi vào,
- *  bong bóng lời thoại kể chuyện). Bên phải: các khung truyện, mỗi khung là một thành tích.
- *  Cuộn tới chương nào: nhân vật đi vào, bong bóng bật lên, khung truyện trượt ra so le, ngôi sao lấp lánh,
- *  thành tích tiêu biểu có con dấu "Xuất sắc" đóng xuống. Cuối truyện là cảnh tốt nghiệp "Chương tiếp theo…".
- *  Trang này không phát âm thanh. */
+/* ---------- "Phiêu lưu ký": hành trình qua các vùng đất, mỗi năm là một vùng ----------
+ *  Trên cùng: tấm bản đồ kho báu vẽ tay (giấy da) nối các vùng đất; bảng chỉ số nhân vật (cấp, kinh nghiệm,
+ *  số nhiệm vụ theo loại) dính trên đầu khi cuộn và tăng dần theo hành trình.
+ *  Mỗi vùng: thẻ tên vùng lướt vào, sương mù tan dần, đường mòn tự vẽ, nhân vật đi theo thanh cuộn,
+ *  lời kể gõ từng chữ như trong trò chơi; bên cạnh là các nhiệm vụ (mỗi thành tích một nhiệm vụ):
+ *  cuộn giấy mở ra, rương báu bật nắp thành huy chương, cộng điểm kinh nghiệm, lên cấp khi sang vùng mới.
+ *  Cuối cùng: "Hành trình tiếp tục…". Trang này không phát âm thanh. */
 const CAT = { 'Học tập': 'c-hoc', 'Hoạt động': 'c-hd', 'Cuộc thi': 'c-thi' };
-const HEROES = ['🧒', '🧑', '🧑‍💻', '🧑‍🔬', '🧑‍🎓'];
-const PLACES = [['🏫', 'Trường trung cấp'], ['🏛️', 'Giảng đường đại học'], ['📚', 'Thư viện'], ['🏟️', 'Hội trường'], ['🔬', 'Phòng thí nghiệm'], ['🏢', 'Nơi làm việc']];
-const SKIES = ['sky-dawn', 'sky-day', 'sky-noon', 'sky-sunset', 'sky-night'];
-const PROPS = [['📚', '✏️', '🎒'], ['📐', '💡', '📝'], ['🏆', '⭐', '🎉'], ['💻', '🔧', '📡'], ['🎓', '🌟', '🎈']];
-const LINES = [
-  (y, n) => `Năm ${y}, mình bắt đầu hành trình với ${n} cột mốc đầu tiên!`,
-  (y, n) => `Sang ${y}, mình cố gắng hơn và có thêm ${n} thành tích.`,
-  (y, n) => `${y} là một năm bận rộn: ${n} điều đáng nhớ!`,
-  (y, n) => `Đến ${y}, mình vẫn tiếp tục chinh phục ${n} mục tiêu mới.`,
+const REWARD = { 'Học tập': '🎖️', 'Hoạt động': '🏅', 'Cuộc thi': '🏆' };
+const WORLDS = [
+  { name: 'Làng Khởi Đầu', icon: '🏡', sky: 'sky-dawn', props: ['🌾', '🐓', '🌳'], hero: '🧒', story: 'Ngày ấy, cậu học trò Đạt khoác chiếc ba lô nhỏ rời làng, mang theo một ước mơ lớn: chinh phục vùng đất Tri Thức.' },
+  { name: 'Thành Phố Học Viện', icon: '🏰', sky: 'sky-day', props: ['📜', '🦉', '📚'], hero: '🧑', story: 'Cổng thành Học Viện mở ra. Mỗi kỳ thi là một cánh cửa, sau cánh cửa là những cuộn giấy khen đang chờ.' },
+  { name: 'Rừng Thử Thách', icon: '🌲', sky: 'sky-noon', props: ['🍄', '🦊', '🌲'], hero: '🧑‍💻', story: 'Khu rừng đầy bài kiểm tra và những đêm thức trắng bên máy tính, nhưng mỗi bước chân đều tìm thấy kho báu.' },
+  { name: 'Núi Danh Dự', icon: '🏔️', sky: 'sky-sunset', props: ['🦅', '⛺', '🚩'], hero: '🧑‍🔬', story: 'Đường lên núi dốc và dài. Đạt lần lượt cắm cờ trên những đỉnh khó nhất, gom về cả một túi huy chương.' },
+  { name: 'Đỉnh Sáng Tạo', icon: '🌋', sky: 'sky-night', props: ['🛰️', '✨', '🚀'], hero: '🧑‍🎓', story: 'Trên đỉnh cao nhất, những ý tưởng mới bắt đầu bay lên như vệ tinh. Cuộc phiêu lưu bước sang hồi mới.' },
 ];
+const OPENERS = {
+  'Học tập': ['Vượt qua thử thách học thuật, nhận', 'Giải xong bài toán khó nhất vùng, mở được', 'Sau nhiều đêm ôn luyện, giành lấy'],
+  'Hoạt động': ['Giúp đỡ dân làng, được trao', 'Cùng đồng đội hoàn thành nhiệm vụ, nhận', 'Lan toả năng lượng tích cực, đổi lấy'],
+  'Cuộc thi': ['Đánh bại các đối thủ trong giải đấu, giành', 'Bước lên sàn đấu và chiến thắng, mang về'],
+};
+const XP_PER = 120;
+const tell = (a, k) => { const o = OPENERS[a.category] || ['Hoàn thành nhiệm vụ, nhận']; return `${o[k % o.length]} “${a.title}”.`; };
 function burstAt(x, y) {
   if (reduced()) return;
   const host = document.createElement('div'); host.className = 'yb-burst'; document.body.appendChild(host);
   const cs = ['#ffe14d', '#d33a2c', '#6aa9f0', '#7ccf8a', '#ef7d57', '#b58cf0'];
   for (let k = 0; k < 18; k++) {
     const s = document.createElement('i');
-    if (k % 4 === 0) { s.textContent = ['⭐', '✏️', '🍎', '📚'][(k / 4) % 4]; s.className = 'emo'; } else s.style.background = cs[k % cs.length];
+    if (k % 4 === 0) { s.textContent = ['⭐', '💎', '🪙', '✨'][(k / 4) % 4]; s.className = 'emo'; } else s.style.background = cs[k % cs.length];
     s.style.left = x + 'px'; s.style.top = y + 'px'; host.appendChild(s);
     const a = (k / 18) * Math.PI * 2 + Math.random() * 0.3, d = 50 + Math.random() * 70;
     gsap.fromTo(s, { x: 0, y: 0, scale: 0.4, rotate: 0, opacity: 1 }, { x: Math.cos(a) * d, y: Math.sin(a) * d + 30, scale: 1, rotate: gsap.utils.random(-360, 360), opacity: 0, duration: 0.9, ease: 'power3.out' });
   }
   setTimeout(() => host.remove(), 1000);
 }
-function StoryBook({ items, onOpen }) {
+function AdventureBook({ items, onOpen }) {
   const root = useRef(null);
   const [tab, setTab] = useState('all');
   const cats = [...new Set(items.map((a) => a.category).filter(Boolean))];
   const shown = tab === 'all' ? items : tab === 'gold' ? items.filter((a) => a.featured) : items.filter((a) => a.category === tab);
-  const chapters = [];
-  shown.forEach((a) => { const y = a.year || 'Khác'; const g = chapters[chapters.length - 1]; if (g && g.y === y) g.list.push(a); else chapters.push({ y, list: [a] }); });
+  const regions = [];
+  shown.forEach((a) => { const y = a.year || 'Khác'; const g = regions[regions.length - 1]; if (g && g.y === y) g.list.push(a); else regions.push({ y, list: [a] }); });
+  const world = (c) => WORLDS[Math.min(c, WORLDS.length - 1)];
   const count = (c) => items.filter((a) => a.category === c).length;
+  const { lenis } = useDiary() || {};
+  const goRegion = (c) => { const el = root.current?.querySelector(`[data-region="${c}"]`); if (!el) return; const y = el.getBoundingClientRect().top + window.scrollY - 150; if (lenis?.current) lenis.current.scrollTo(y, { duration: 1.2 }); else window.scrollTo({ top: y, behavior: 'smooth' }); };
 
+  /* mở màn: bản đồ kho báu tự vẽ đường, các vùng đất hiện ra */
   useLayoutEffect(() => {
     if (reduced()) return undefined;
     const ctx = gsap.context(() => {
       gsap.fromTo('.yb-sum > *', { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: 'back.out(2)', delay: 0.1, clearProps: 'transform,opacity' });
-      gsap.from('.sb-cover > *', { y: 30, opacity: 0, duration: 0.7, stagger: 0.1, ease: 'power3.out', delay: 0.2 });
+      const path = root.current.querySelector('.qv-map path.route');
+      if (path) { const l = path.getTotalLength(); gsap.fromTo(path, { strokeDasharray: `${l} ${l}`, strokeDashoffset: l }, { strokeDashoffset: 0, duration: 2, ease: 'power2.inOut', delay: 0.3, onComplete: () => { path.style.strokeDasharray = '10 9'; path.style.strokeDashoffset = '0'; } }); }
+      gsap.from('.qv-spot', { scale: 0, y: 20, duration: 0.5, stagger: 0.25, ease: 'back.out(2.5)', delay: 0.5 });
+      gsap.from('.qv-map .x', { scale: 0, rotate: -180, duration: 0.6, ease: 'back.out(3)', delay: 2.1 });
     }, root);
     return () => ctx.revert();
-  }, []);
+  }, [tab]);
+
+  /* từng vùng đất: thẻ tên lướt vào, sương tan, đường mòn vẽ ra, lời kể gõ chữ, nhiệm vụ mở ra; chỉ số tăng dần */
   useLayoutEffect(() => {
-    if (reduced()) return undefined;
+    const el = root.current; if (!el) return undefined;
+    const hud = { lv: el.querySelector('.qv-lv'), xp: el.querySelector('.qv-xp'), bar: el.querySelector('.qv-bar i'), n: el.querySelector('.qv-n') };
+    const byCat = {}; el.querySelectorAll('.qv-cnt').forEach((c) => { byCat[c.dataset.c] = c; });
+    const done = new Set(); let level = 0;
+    const total = shown.length;
+    const award = (card) => {
+      if (done.has(card)) return; done.add(card);
+      if (hud.n) hud.n.textContent = String(done.size);
+      if (hud.xp) hud.xp.textContent = String(done.size * XP_PER);
+      if (hud.bar) hud.bar.style.transform = `scaleX(${total ? done.size / total : 0})`;
+      const c = byCat[card.dataset.c]; if (c) c.textContent = String(+c.textContent + 1);
+      card.classList.add('open');
+    };
+    const levelUp = (c, name) => {
+      if (c + 1 <= level) return; level = c + 1;
+      if (hud.lv) hud.lv.textContent = String(level);
+      const t = el.querySelector('.qv-toast'); if (!t) return;
+      t.querySelector('b').textContent = `Lên cấp ${level}!`; t.querySelector('small').textContent = `Đã tới ${name}`;
+      if (reduced()) return;
+      gsap.killTweensOf(t);
+      gsap.timeline().fromTo(t, { y: -30, scale: 0.6, autoAlpha: 0 }, { y: 0, scale: 1, autoAlpha: 1, duration: 0.45, ease: 'back.out(2.4)' }).to(t, { autoAlpha: 0, y: -20, duration: 0.4, delay: 1.6 });
+    };
+    const type = (p) => {
+      const full = p.dataset.text || ''; if (reduced()) { p.textContent = full; return; }
+      let i = 0; p.textContent = '';
+      const id = setInterval(() => { i += 2; p.textContent = full.slice(0, i); if (i >= full.length) clearInterval(id); }, 28);
+    };
+    if (reduced()) {
+      el.querySelectorAll('.qv-tell').forEach(type);
+      el.querySelectorAll('.qv-card').forEach(award);
+      el.querySelectorAll('.qv-region').forEach((r) => levelUp(+r.dataset.region, r.dataset.name));
+      return undefined;
+    }
     const ctx = gsap.context(() => {
-      gsap.utils.toArray('.sb-ch').forEach((ch) => {
-        const tl = gsap.timeline({ scrollTrigger: { trigger: ch, start: 'top 78%', once: true } });
-        tl.from(ch.querySelector('.sb-tab'), { x: -40, opacity: 0, duration: 0.5, ease: 'back.out(2)' })
-          .from(ch.querySelector('.sb-scene'), { clipPath: 'inset(0 0 100% 0 round 22px)', duration: 0.7, ease: 'power3.inOut' }, 0.05)
-          .from(ch.querySelector('.sb-sun'), { y: 60, opacity: 0, duration: 0.9, ease: 'power2.out' }, 0.4)
-          .from(ch.querySelector('.sb-place'), { y: 40, scale: 0.6, opacity: 0, duration: 0.6, ease: 'back.out(2)' }, 0.5)
-          .from(ch.querySelector('.sb-hero'), { x: -160, duration: 1.1, ease: 'power2.out' }, 0.55)
-          .from(ch.querySelectorAll('.sb-prop'), { y: -40, opacity: 0, rotate: () => gsap.utils.random(-60, 60), duration: 0.6, stagger: 0.1, ease: 'bounce.out' }, 0.8)
-          .from(ch.querySelector('.sb-bubble'), { scale: 0, transformOrigin: '20% 100%', duration: 0.5, ease: 'back.out(2.4)' }, 1.3)
-          .from(ch.querySelectorAll('.sb-panel'), { y: 60, x: (k) => (k % 2 ? 40 : -40), rotate: (k) => (k % 2 ? 4 : -4), opacity: 0, duration: 0.7, stagger: 0.12, ease: 'back.out(1.5)', clearProps: 'transform,opacity' }, 0.3)
-          .fromTo(ch.querySelectorAll('.sb-stamp'), { scale: 2.8, opacity: 0, rotate: -40 }, { scale: 1, opacity: 0.92, rotate: -12, duration: 0.3, ease: 'power4.in', stagger: 0.15 }, 1.1)
-          .from(ch.querySelectorAll('.sb-spark'), { scale: 0, opacity: 0, duration: 0.4, stagger: 0.05, ease: 'back.out(3)' }, 1.2);
-        // nhân vật và cảnh trôi nhẹ theo thanh cuộn (thị sai), không giữ trang lại
-        gsap.to(ch.querySelector('.sb-cloud'), { xPercent: 60, ease: 'none', scrollTrigger: { trigger: ch, start: 'top bottom', end: 'bottom top', scrub: 0.8 } });
-        gsap.to(ch.querySelector('.sb-place'), { yPercent: -12, ease: 'none', scrollTrigger: { trigger: ch, start: 'top bottom', end: 'bottom top', scrub: 0.8 } });
+      gsap.utils.toArray(el.querySelectorAll('.qv-region')).forEach((rg) => {
+        const c = +rg.dataset.region;
+        const tl = gsap.timeline({ scrollTrigger: { trigger: rg, start: 'top 75%', once: true, onEnter: () => levelUp(c, rg.dataset.name) } });
+        tl.from(rg.querySelector('.qv-title'), { x: -80, skewX: -12, opacity: 0, duration: 0.6, ease: 'power3.out' })
+          .to(rg.querySelector('.qv-fog'), { opacity: 0, scale: 1.4, duration: 1.2, ease: 'power2.out' }, 0.2)
+          .from(rg.querySelector('.qv-land'), { y: 50, scale: 0.6, opacity: 0, duration: 0.7, ease: 'back.out(2)' }, 0.4)
+          .from(rg.querySelectorAll('.sb-prop'), { y: -40, opacity: 0, rotate: () => gsap.utils.random(-60, 60), duration: 0.6, stagger: 0.1, ease: 'bounce.out' }, 0.6)
+          .add(() => type(rg.querySelector('.qv-tell')), 0.9);
+        const trail = rg.querySelector('.qv-trail path');
+        if (trail) { const l = trail.getTotalLength(); gsap.fromTo(trail, { strokeDasharray: `${l} ${l}`, strokeDashoffset: l }, { strokeDashoffset: 0, ease: 'none', scrollTrigger: { trigger: rg, start: 'top 70%', end: 'bottom 60%', scrub: 0.6 } }); }
+        // nhân vật đi dọc đường mòn theo thanh cuộn (không giữ trang lại)
+        gsap.fromTo(rg.querySelector('.qv-hero'), { left: '6%' }, { left: '74%', ease: 'none', scrollTrigger: { trigger: rg, start: 'top 70%', end: 'bottom 60%', scrub: 0.6 } });
+        gsap.to(rg.querySelector('.sb-cloud'), { xPercent: 80, ease: 'none', scrollTrigger: { trigger: rg, start: 'top bottom', end: 'bottom top', scrub: 0.8 } });
+        rg.querySelectorAll('.qv-card').forEach((card, k) => {
+          gsap.timeline({ scrollTrigger: { trigger: card, start: 'top 86%', once: true } })
+            .fromTo(card, { clipPath: 'inset(0 0 100% 0 round 14px)', y: 30 }, { clipPath: 'inset(0 0 0% 0 round 14px)', y: 0, duration: 0.7, ease: 'power3.out', delay: (k % 3) * 0.1, clearProps: 'clipPath,transform' })
+            .from(card.querySelector('.qv-roll'), { scaleY: 0, transformOrigin: '50% 0%', duration: 0.3 }, 0)
+            .to(card.querySelector('.qv-roll'), { y: () => card.offsetHeight, duration: 0.7, ease: 'power3.out' }, 0)
+            .to(card.querySelector('.qv-roll'), { opacity: 0, duration: 0.2 })
+            .fromTo(card.querySelector('.qv-chest'), { rotate: 0 }, { keyframes: [{ rotate: -14 }, { rotate: 12 }, { rotate: -8 }, { rotate: 0 }], duration: 0.4 }, 0.5)
+            .add(() => award(card), 0.9)
+            .fromTo(card.querySelectorAll('.qv-xpgain'), { y: 0, opacity: 0 }, { keyframes: [{ y: -16, opacity: 1, duration: 0.3 }, { y: -40, opacity: 0, duration: 0.6 }] }, 0.95)
+            .fromTo(card.querySelectorAll('.sb-stamp'), { scale: 2.8, opacity: 0, rotate: -40 }, { scale: 1, opacity: 0.92, rotate: -12, duration: 0.3, ease: 'power4.in' }, 1.1);
+        });
       });
-      gsap.timeline({ scrollTrigger: { trigger: '.sb-end', start: 'top 85%', once: true } })
-        .from('.sb-end .sb-cap', { y: 60, rotate: -200, opacity: 0, duration: 1, ease: 'back.out(1.6)' })
-        .from('.sb-end p, .sb-end b', { y: 20, opacity: 0, stagger: 0.1, duration: 0.5 }, 0.4);
+      gsap.timeline({ scrollTrigger: { trigger: el.querySelector('.qv-end'), start: 'top 88%', once: true } })
+        .from(el.querySelectorAll('.qv-end .sb-cap'), { y: 60, rotate: -200, opacity: 0, duration: 1, ease: 'back.out(1.6)' })
+        .from(el.querySelectorAll('.qv-end b, .qv-end p'), { y: 20, opacity: 0, stagger: 0.1, duration: 0.5 }, 0.4);
       ScrollTrigger.refresh();
-    }, root);
+    }, el);
     return () => ctx.revert();
-  }, [tab, items]);
+  }, [tab, items]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pick = (t) => { if (t !== tab) setTab(t); };
+  const W = 1000, H = 150;
+  const spots = regions.map((_, c) => ({ x: 70 + (regions.length > 1 ? (c * (W - 140)) / (regions.length - 1) : (W - 140) / 2), y: c % 2 ? 46 : 104 }));
+  const route = spots.length ? spots.reduce((d, p, k) => (k ? `${d} Q ${(spots[k - 1].x + p.x) / 2} ${k % 2 ? 6 : 144}, ${p.x} ${p.y}` : `M ${p.x - 50} ${p.y}`), '') : '';
   return (
-    <div className="yb sb" ref={root}>
+    <div className="yb sb qv" ref={root}>
       <div className="yb-sum" role="tablist" aria-label="Lọc thành tích">
         <button role="tab" aria-selected={tab === 'all'} className={`yb-chip all ${tab === 'all' ? 'on' : ''}`} onClick={() => pick('all')}><b>{items.length}</b><span>Tất cả</span></button>
         {cats.map((c) => (
@@ -139,44 +199,66 @@ function StoryBook({ items, onOpen }) {
         <button role="tab" aria-selected={tab === 'gold'} className={`yb-chip gold ${tab === 'gold' ? 'on' : ''}`} onClick={() => pick('gold')}><i aria-hidden="true">⭐</i><b>{items.filter((a) => a.featured).length}</b><span>Tiêu biểu</span></button>
       </div>
 
-      <header className="sb-cover">
-        <span className="sb-cover-ic" aria-hidden="true">📖</span>
-        <h2>Truyện tranh: <em>Hành trình của mình</em></h2>
-        <p>{chapters.length} chương · {shown.length} thành tích · cuộn xuống để lật từng trang</p>
+      {/* bản đồ kho báu */}
+      <header className="qv-cover">
+        <div className="qv-cover-t"><span aria-hidden="true">📜</span><div><h2>Phiêu lưu ký: <em>Vùng đất Tri Thức</em></h2><p>Mỗi năm là một vùng đất, mỗi thành tích là một nhiệm vụ đã hoàn thành. Cuộn xuống để cùng Đạt lên đường!</p></div></div>
+        <svg className="qv-map" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+          <path className="route" d={route} />
+          {spots.length > 0 && <text className="x" x={spots[spots.length - 1].x + 40} y={spots[spots.length - 1].y + 8}>✖</text>}
+        </svg>
+        <div className="qv-spots">
+          {regions.map((g, c) => (
+            <button key={g.y} className="qv-spot" style={{ left: `${(spots[c].x / W) * 100}%`, top: `${(spots[c].y / H) * 100}%` }} onClick={() => goRegion(c)}>
+              <i aria-hidden="true">{world(c).icon}</i><b>{world(c).name}</b><small>{g.y}</small>
+            </button>
+          ))}
+        </div>
       </header>
 
-      {chapters.map((g, c) => {
-        const place = PLACES[Math.min(c, PLACES.length - 1)];
-        const props = PROPS[c % PROPS.length];
+      {/* bảng chỉ số nhân vật */}
+      <div className="qv-hud" aria-live="off" key={'hud-' + tab}>
+        <span className="qv-ava" aria-hidden="true">🧑‍🎓</span>
+        <span className="qv-stat"><small>Cấp</small><b className="qv-lv">0</b></span>
+        <span className="qv-stat grow"><small>Kinh nghiệm · <b className="qv-xp">0</b> XP</small><span className="qv-bar"><i /></span></span>
+        <span className="qv-stat"><small>Nhiệm vụ</small><b><span className="qv-n">0</span>/{shown.length}</b></span>
+        {cats.map((c) => <span key={c} className={`qv-stat mini ${CAT[c] || ''}`} title={c}><i aria-hidden="true">{IC[c] || '✦'}</i><b className="qv-cnt" data-c={c}>0</b></span>)}
+      </div>
+      <div className="qv-toast" aria-hidden="true"><b /><small /></div>
+
+      {regions.map((g, c) => {
+        const w = world(c);
         return (
-          <section className={`sb-ch ${c % 2 ? 'alt' : ''} ${g.list.length === 1 ? 'one' : ''}`} key={tab + g.y}>
-            <h3 className="sb-tab"><small>Chương {c + 1}</small>{g.y}</h3>
+          <section className={`sb-ch qv-region ${c % 2 ? 'alt' : ''} ${g.list.length === 1 ? 'one' : ''}`} key={tab + g.y} data-region={c} data-name={w.name}>
+            <h3 className="qv-title"><small>Vùng {c + 1} · {g.y}</small>{w.icon} {w.name}</h3>
             <div className="sb-grid">
               <div className="sb-stage">
-                <div className={`sb-scene ${SKIES[c % SKIES.length]}`} aria-hidden="true">
-                  <span className="sb-sun">{SKIES[c % SKIES.length] === 'sky-night' ? '🌙' : '☀️'}</span>
+                <div className={`sb-scene ${w.sky}`} aria-hidden="true">
+                  <span className="sb-sun">{w.sky === 'sky-night' ? '🌙' : '☀️'}</span>
                   <span className="sb-cloud">☁️</span>
-                  <span className="sb-place"><i>{place[0]}</i><small>{place[1]}</small></span>
+                  <span className="qv-land"><i>{w.icon}</i></span>
                   <span className="sb-ground" />
-                  {props.map((p, k) => <span key={k} className={`sb-prop p${k}`}>{p}</span>)}
-                  <span className="sb-hero"><i>{HEROES[Math.min(c, HEROES.length - 1)]}</i><b>🎒</b></span>
+                  <svg className="qv-trail" viewBox="0 0 300 60" preserveAspectRatio="none"><path d="M10 40 C 70 10, 120 58, 170 34 S 260 14, 292 30" /></svg>
+                  {w.props.map((p, k) => <span key={k} className={`sb-prop p${k}`}>{p}</span>)}
+                  <span className="qv-hero"><i>{w.hero}</i><b>🎒</b></span>
+                  <span className="qv-fog" />
                 </div>
-                <p className="sb-bubble">{LINES[Math.min(c, LINES.length - 1)](g.y, g.list.length)}</p>
+                <p className="sb-bubble qv-tell" data-text={w.story} aria-label={w.story}>{w.story}</p>
               </div>
               <div className="sb-panels">
                 {g.list.map((a, k) => (
-                  <button key={a.id || a.n} className={`sb-panel ${CAT[a.category] || ''} ${a.featured ? 'star' : ''} ${a.ar < 0.95 ? 'tall' : 'wide'}`}
+                  <button key={a.id || a.n} data-c={a.category} className={`sb-panel qv-card ${CAT[a.category] || ''} ${a.featured ? 'star' : ''} ${a.ar < 0.95 ? 'tall' : 'wide'}`}
                     onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); burstAt(r.left + r.width / 2, r.top + 40); onOpen(a.n, e.currentTarget.querySelector('.sb-pic') || e.currentTarget); }}
                     aria-label={`Xem chi tiết: ${a.title}`}>
-                    <span className="sb-no" aria-hidden="true">#{k + 1}</span>
+                    <span className="qv-head"><span>⚔️ Nhiệm vụ {k + 1}</span><span className="qv-chest" aria-hidden="true"><i className="shut">🧰</i><i className="won">{a.featured ? '👑' : REWARD[a.category] || '🏅'}</i></span></span>
                     <span className="sb-pic">{a.img ? <img src={a.img} alt="" loading="lazy" draggable="false" onLoad={(e) => { const im = e.currentTarget, tall = im.naturalHeight > im.naturalWidth * 1.05, pn = im.closest('.sb-panel'); pn?.classList.toggle('tall', tall); pn?.classList.toggle('wide', !tall); }} /> : <span className="yb-ph">{IC[a.category] || '✦'}</span>}</span>
                     <span className="sb-body">
-                      <small className="yb-cat">{IC[a.category] || '✦'} {a.category}</small>
+                      <small className="yb-cat">{IC[a.category] || '✦'} {a.category} · {a.date}</small>
                       <b className="yb-t">{a.title}</b>
-                      <span className="yb-date">{a.date}</span>
-                      {a.desc && <span className="yb-desc">{a.desc}</span>}
+                      <span className="qv-line">{tell(a, k)}</span>
                     </span>
-                    {a.featured && <><span className="sb-stamp" aria-hidden="true">Xuất sắc</span><i className="sb-spark s1" aria-hidden="true">✦</i><i className="sb-spark s2" aria-hidden="true">✧</i><i className="sb-spark s3" aria-hidden="true">✦</i></>}
+                    <span className="qv-xpgain" aria-hidden="true">+{XP_PER} XP</span>
+                    {a.featured && <span className="sb-stamp" aria-hidden="true">Huyền thoại</span>}
+                    <span className="qv-roll" aria-hidden="true" />
                   </button>
                 ))}
               </div>
@@ -185,10 +267,10 @@ function StoryBook({ items, onOpen }) {
         );
       })}
       {shown.length > 0 && (
-        <footer className="sb-end">
-          <span className="sb-cap" aria-hidden="true">🎓</span>
-          <b>Chương tiếp theo…</b>
-          <p>Hành trình vẫn đang được viết tiếp. Hẹn gặp ở trang sau!</p>
+        <footer className="sb-end qv-end">
+          <span className="sb-cap" aria-hidden="true">🗺️</span>
+          <b>Hành trình tiếp tục…</b>
+          <p>Bản đồ vẫn còn những vùng đất chưa đặt chân tới. Hẹn gặp ở chương sau!</p>
         </footer>
       )}
       {shown.length === 0 && <p className="hw-empty">Chưa có thành tích nào ở mục này.</p>}
@@ -302,7 +384,7 @@ export default function Museum() {
   const open = (n, el) => { const r = el.getBoundingClientRect(); setView({ n, from: { left: r.left, top: r.top, width: r.width, height: r.height } }); };
   return (
     <div className="mz">
-      <StoryBook items={items} onOpen={open} />
+      <AdventureBook items={items} onOpen={open} />
       {view && items.length > 0 && <Detail items={items} at={Math.min(view.n, items.length - 1)} from={view.from} onClose={() => setView(null)} />}
       {ed.canEdit && <ListEditor ed={ed} label="thành tích" fields={ACH_FIELDS} blank={ACH_BLANK} preview={ACH_PREVIEW} />}
     </div>

@@ -38,6 +38,7 @@ import './desk14.css';
 import './desk15.css';
 import './desk16.css';
 import './desk17.css';
+import './desk18.css';
 
 gsap.registerPlugin(ScrollTrigger);
 const vi = (v) => (typeof v === 'object' && v ? v.vi || v.en : v);
