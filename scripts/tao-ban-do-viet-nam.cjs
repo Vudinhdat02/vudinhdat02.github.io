@@ -64,6 +64,7 @@ const archipelagos = [
   { name: 'Quần đảo Hoàng Sa (Việt Nam)', xy: at(111.95, 16.35), r: 58, dots: [[112.33, 16.83], [111.61, 16.53], [111.2, 15.78], [112.73, 16.67], [111.7, 16.45], [112.0, 16.1]].map(([x, y]) => at(x, y)) },
   { name: 'Quần đảo Trường Sa (Việt Nam)', xy: at(113.3, 9.9), r: 92, dots: [[111.92, 8.65], [114.33, 11.43], [114.33, 9.88], [114.36, 10.18], [114.48, 10.38], [113.4, 9.3], [112.9, 9.9], [114.0, 10.9]].map(([x, y]) => at(x, y)) },
 ];
-const res = { source: 'geoBoundaries VNM ADM1 (gbOpen, Public Domain) — www.geoboundaries.org', viewBox: `0 0 ${W} ${H}`, w: W, h: H, provinces: list, islands, archipelagos };
+const origin = { lon0: LON0, lat1: LAT1, k: K, cos: COS, dx: +(-minX + pad).toFixed(3), dy: +(-minY + pad).toFixed(3) }; // để bản đồ thế giới khớp toạ độ
+const res = { source: 'geoBoundaries VNM ADM1 (gbOpen, Public Domain) — www.geoboundaries.org', viewBox: `0 0 ${W} ${H}`, w: W, h: H, origin, provinces: list, islands, archipelagos };
 fs.writeFileSync(out, JSON.stringify(res));
 console.log('provinces', list.length, 'size', fs.statSync(out).size, 'view', W, H);

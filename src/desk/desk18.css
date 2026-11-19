@@ -188,3 +188,66 @@
 .mg-fig img { flex: none; min-width: 0; min-height: 0; }
 @media (max-width: 759px) { .mg-hot { right: 2px; top: -10px; } }
 @media (max-width: 759px) { .mg-mast { font-size: 9vw; margin-top: 18px; } }
+
+/* =================================================================
+ *  DU LỊCH — bản đồ thế giới toàn màn hình (vòng 7)
+ * ================================================================= */
+.page-du-lich .pg-body { max-width: none; padding: 0; }
+.tv.tvw { max-width: none; padding: 0; margin: 0; }
+.tvw-box { position: relative; width: 100vw; margin-left: calc(50% - 50vw); height: calc(100svh - var(--tbh)); min-height: 520px; overflow: hidden; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
+  background: radial-gradient(ellipse at 60% 40%, #d8eefb 0%, #b9dcf2 45%, #8fc3e6 100%); }
+.tvw-box.grab { cursor: grabbing; }
+.tvw-map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.tvw-grat { fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.tvw-sea { font-family: var(--old); font-style: italic; fill: rgba(31, 70, 120, 0.45); letter-spacing: 0.2em; pointer-events: none; }
+.tvw .ct { fill: #f1e8cf; stroke: #b9a77c; stroke-width: 0.8; vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: fill 0.25s; cursor: pointer; }
+.tvw .ct:hover, .tvw .ct.hov { fill: #ffe9a3; }
+.tvw .ct.l1 { fill: #bfe9e4; } .tvw .ct.l2 { fill: #6fcfc6; } .tvw .ct.l3 { fill: #2a9da2; }
+.tvw .ct.on { fill: #ef7d57; }
+.tvw .pv { stroke-width: 0.9; vector-effect: non-scaling-stroke; }
+.tvw .pv.l0 { fill: #fff6dc; }
+.tvw-vn { filter: drop-shadow(0 0 2px rgba(31, 47, 110, 0.35)); }
+.tvw .tv-arch circle { vector-effect: non-scaling-stroke; fill: rgba(255, 255, 255, 0.35); }
+.tvw .tv-arch circle.dot { fill: #d33a2c; }
+.tvw .tv-arch text { font-family: var(--body); font-weight: 700; fill: #c8321f; paint-order: stroke; stroke: rgba(255, 255, 255, 0.9); stroke-width: 3px; vector-effect: non-scaling-stroke; }
+.tvw .tv-isl text, .tvw-cl, .tvw-pl { font-family: var(--body); paint-order: stroke; stroke: rgba(255, 255, 255, 0.85); stroke-width: 3px; vector-effect: non-scaling-stroke; pointer-events: none; }
+.tvw-cl { font-weight: 600; fill: #6b5d45; letter-spacing: 0.04em; }
+.tvw-pl { font-weight: 600; fill: #1f2f6e; }
+.tvw .tv-pin { pointer-events: none; }
+.tvw-tip { position: absolute; z-index: 6; left: 0; top: 0; pointer-events: none; }
+/* lớp nổi: kính mờ */
+.tvw-ui { position: absolute; inset: 0; pointer-events: none; }
+.tvw-ui > * { pointer-events: auto; }
+.tvw-glass { background: rgba(255, 255, 255, 0.72); backdrop-filter: blur(10px) saturate(1.2); -webkit-backdrop-filter: blur(10px) saturate(1.2); border: 1.5px solid rgba(31, 47, 110, 0.25); border-radius: 16px; box-shadow: 0 10px 30px rgba(31, 47, 110, 0.18); }
+.tvw-stats { position: absolute; left: 18px; top: 18px; display: flex; gap: 18px; padding: 10px 16px; }
+.tvw-stats span { display: flex; flex-direction: column; font: 0.95rem var(--hand); color: var(--ink-soft); }
+.tvw-stats b { font: 400 1.9rem/1 var(--hand); color: #1d7f84; }
+.tvw-stats small { font: 0.85rem var(--hand); }
+.tvw-ctrl { position: absolute; right: 18px; top: 18px; display: flex; flex-direction: column; gap: 8px; }
+.tvw-ctrl button { width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.9); border: 2px solid var(--ink); box-shadow: 0 3px 0 var(--ink); font: 700 1.2rem var(--body); color: var(--ink); }
+.tvw-ctrl button:active { translate: 0 2px; box-shadow: 0 1px 0 var(--ink); }
+.tvw-list { position: absolute; left: 18px; top: 108px; width: 290px; max-height: calc(100% - 190px); display: flex; flex-direction: column; overflow: hidden; }
+.tvw-list-t { display: flex; align-items: center; gap: 8px; padding: 12px 14px; font: 1.2rem var(--hand); color: var(--ink); text-align: left; }
+.tvw-list-t b { padding: 0 8px; border-radius: 999px; background: #2a9da2; color: #fff; font: 700 0.8rem var(--mono); }
+.tvw-list-t i { margin-left: auto; font-style: normal; }
+.tvw-list-b { display: flex; flex-direction: column; gap: 10px; padding: 0 14px 14px; overflow: auto; overscroll-behavior: contain; }
+.tvw-legend { position: absolute; left: 50%; bottom: 18px; translate: -50% 0; display: flex; align-items: center; gap: 6px 10px; padding: 8px 14px; font: 0.95rem var(--hand); color: var(--ink-soft); white-space: nowrap; }
+.tvw-legend i { width: 18px; height: 14px; border-radius: 3px; border: 1.5px solid var(--ink); }
+.tvw-legend .l0 { background: #fff6dc; } .tvw-legend .l1 { background: #bfe9e4; } .tvw-legend .l2 { background: #6fcfc6; } .tvw-legend .l3 { background: #2a9da2; }
+@media (max-width: 759px) {
+  .tvw-box { height: calc(78svh - var(--tbh)); min-height: 440px; }
+  .tvw-stats { left: 10px; top: 10px; gap: 12px; padding: 8px 12px; border-radius: 12px; }
+  .tvw-stats b { font-size: 1.4rem; } .tvw-stats small { font-size: 0.72rem; }
+  .tvw-ctrl { right: 10px; top: 10px; gap: 6px; }
+  .tvw-ctrl button { width: 38px; height: 38px; font-size: 1rem; }
+  .tvw-list { left: 10px; right: 10px; top: auto; bottom: 10px; width: auto; max-height: 55%; }
+  .tvw-list-t { padding: 10px 12px; font-size: 1.05rem; }
+  .tvw-legend { display: none; }
+}
+.tvw .pv { fill: #fff6dc; stroke: #1f2f6e; cursor: pointer; transition: fill 0.25s; outline: none; }
+.tvw .pv.l1 { fill: #bfe9e4; } .tvw .pv.l2 { fill: #6fcfc6; } .tvw .pv.l3 { fill: #2a9da2; }
+.tvw .pv.hov, .tvw .pv:focus-visible { fill: #ffe14d; }
+.tvw .pv.on { fill: #ef7d57; }
+.tvw-stats b em { font: 1rem var(--hand); font-style: normal; color: var(--ink-soft); }
+.tvw-ctrl button.vn { font: 800 0.85rem var(--mono); color: #c8321f; }
+.tvw .tv-arch circle:not(.dot) { stroke-width: 1.6; }

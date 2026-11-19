@@ -1,8 +1,10 @@
 /*
- * Trang "Du lịch": bản đồ Việt Nam 63 tỉnh thành (trước khi sáp nhập năm 2025), có quần đảo Hoàng Sa, Trường Sa
- * và các đảo lớn. Tỉnh nào đã đến được tô màu (đậm dần theo số ảnh); bấm vào tỉnh để xem ảnh và ghi chú.
+ * Trang "Du lịch": bản đồ thế giới toàn màn hình, Việt Nam ở giữa với 63 tỉnh thành (trước khi sắp xếp năm 2025),
+ * quần đảo Hoàng Sa, Trường Sa và các đảo lớn. Nơi đã đến (tỉnh thành hoặc quốc gia) được tô màu đậm dần theo số ảnh;
+ * bấm vào để xem ảnh và ghi chú.
+ *  - Bản đồ thế giới: src/data/worldmap.json, tạo bằng scripts/tao-ban-do-the-gioi.cjs từ Natural Earth 1:110m (Public Domain).
  *  - Bản đồ: src/data/vnmap.json, tạo bằng scripts/tao-ban-do-viet-nam.cjs từ geoBoundaries VNM ADM1 (Public Domain).
- *  - Ảnh: src/data/travel.json  [{ id, province, image, title, date, place, desc }]
+ *  - Ảnh: src/data/travel.json  [{ id, province, image, title, date, place, desc }]  (province = mã tỉnh, hoặc "qg:<ISO>" cho quốc gia)
  *  - Ghi chú từng tỉnh: src/data/travelnotes.json  { <mã tỉnh>: "ghi chú" }
  *  - Sửa (thêm / sửa / xoá ảnh, ghi chú): chạy npm run dev trên máy, hoặc đăng nhập #admin trên web thật.
  * Trang này không phát âm thanh.
@@ -12,6 +14,7 @@ import { createPortal } from 'react-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import MAP from '../../data/vnmap.json';
+import WORLD from '../../data/worldmap.json';
 import travelData from '../../data/travel.json';
 import notesData from '../../data/travelnotes.json';
 import { asset } from '../../utils/asset';
@@ -22,47 +25,69 @@ import { useDiary } from '../Diary';
 import { reduced } from '../Fx';
 
 gsap.registerPlugin(ScrollTrigger);
-const BY_ID = Object.fromEntries(MAP.provinces.map((p) => [p.id, p]));
 const level = (n) => (n >= 6 ? 3 : n >= 3 ? 2 : n >= 1 ? 1 : 0);
 const BLANK = (province) => ({ id: '', province, image: '', title: '', date: '', place: '', desc: '' });
 
-/* ---------- bản đồ: kéo để di chuyển, nút +/− hoặc lăn chuột / chụm hai ngón để phóng to ---------- */
-function useZoom(svgRef) {
-  const [vb, setVb] = useState({ x: 0, y: 0, w: MAP.w, h: MAP.h });
-  const clamp = (v) => {
-    const w = Math.min(MAP.w, Math.max(MAP.w / 6, v.w)), h = (w / MAP.w) * MAP.h;
-    return { w, h, x: Math.min(MAP.w - w * 0.3, Math.max(-w * 0.7, v.x)), y: Math.min(MAP.h - h * 0.3, Math.max(-h * 0.7, v.y)) };
+/* ---------- khung nhìn bản đồ: tâm (cx, cy) + tỉ lệ s (đơn vị bản đồ / 1 điểm ảnh) ----------
+ *  Kéo để di chuyển, chụm hai ngón hoặc Ctrl + lăn chuột (hay chụm trên bàn di chuột) để phóng to / thu nhỏ;
+ *  lăn chuột bình thường vẫn cuộn trang (không giữ trang lại). */
+const VN_BOX = [0, 0, MAP.w, MAP.h];
+const WB = WORLD.bounds; // [minX, minY, maxX, maxY]
+function useMapView(boxRef) {
+  const [size, setSize] = useState({ w: 1200, h: 700 });
+  const [v, setV] = useState(null); // { cx, cy, s }
+  const vRef = useRef(null); vRef.current = v;
+  const fit = (b, sz = size, pad = 1.1) => ({ cx: (b[0] + b[2]) / 2, cy: (b[1] + b[3]) / 2, s: Math.max((b[2] - b[0]) / sz.w, (b[3] - b[1]) / sz.h) * pad });
+  const limits = (sz) => ({ min: 0.08, max: Math.max((WB[2] - WB[0]) / sz.w, (WB[3] - WB[1]) / sz.h) * 1.05 });
+  const clamp = (x, sz = size) => {
+    const L = limits(sz), s = Math.min(L.max, Math.max(L.min, x.s));
+    return { s, cx: Math.min(WB[2], Math.max(WB[0], x.cx)), cy: Math.min(WB[3], Math.max(WB[1], x.cy)) };
   };
-  const zoomAt = (k, cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2) => setVb((v) => clamp({ w: v.w / k, h: v.h / k, x: cx - (cx - v.x) / k, y: cy - (cy - v.y) / k }));
+  useLayoutEffect(() => {
+    const el = boxRef.current; if (!el) return undefined;
+    const measure = () => { const r = el.getBoundingClientRect(); const sz = { w: Math.max(200, r.width), h: Math.max(200, r.height) }; setSize(sz); setV((o) => o || fit(VN_BOX, sz, window.innerWidth < 760 ? 1.02 : 1.12)); };
+    measure(); const ro = new ResizeObserver(measure); ro.observe(el); return () => ro.disconnect();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const tween = useRef(null);
+  const animateTo = (to) => {
+    const from = vRef.current; if (!from) return;
+    const t = clamp(to); tween.current?.kill();
+    if (reduced()) { setV(t); return; }
+    const o = { ...from };
+    tween.current = gsap.to(o, { cx: t.cx, cy: t.cy, s: t.s, duration: 0.9, ease: 'power3.inOut', onUpdate: () => setV({ ...o }) });
+  };
   useEffect(() => {
-    const el = svgRef.current; if (!el) return undefined;
-    const pts = new Map(); let start = null;
-    const toMap = (e, v) => { const r = el.getBoundingClientRect(); return [v.x + ((e.clientX - r.left) / r.width) * v.w, v.y + ((e.clientY - r.top) / r.height) * v.h]; };
-    const down = (e) => { pts.set(e.pointerId, e); if (pts.size === 1) start = { e, moved: false }; };
+    const el = boxRef.current; if (!el) return undefined;
+    const pts = new Map(); let moved = 0;
+    const toMap = (clientX, clientY, cur) => { const r = el.getBoundingClientRect(); return [cur.cx + (clientX - r.left - r.width / 2) * cur.s, cur.cy + (clientY - r.top - r.height / 2) * cur.s]; };
+    const zoomAround = (cur, k, clientX, clientY) => { const [px, py] = toMap(clientX, clientY, cur); const s2 = cur.s / k; return clamp({ s: s2, cx: px - (px - cur.cx) * (s2 / cur.s), cy: py - (py - cur.cy) * (s2 / cur.s) }); };
+    const down = (e) => { if (e.target.closest('.tvw-ui')) return; tween.current?.kill(); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; el.classList.add('grab'); };
     const move = (e) => {
       if (!pts.has(e.pointerId)) return;
-      const prev = pts.get(e.pointerId); pts.set(e.pointerId, e);
-      setVb((v) => {
-        const r = el.getBoundingClientRect(), sx = v.w / r.width, sy = v.h / r.height;
-        if (pts.size === 2) {
-          const [a, b] = [...pts.values()]; const d1 = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-          const pa = a === e ? prev : a, pb = b === e ? prev : b; const d0 = Math.hypot(pa.clientX - pb.clientX, pa.clientY - pb.clientY) || d1;
-          const [cx, cy] = toMap({ clientX: (a.clientX + b.clientX) / 2, clientY: (a.clientY + b.clientY) / 2 }, v); const k = d1 / d0;
-          return clamp({ w: v.w / k, h: v.h / k, x: cx - (cx - v.x) / k, y: cy - (cy - v.y) / k });
-        }
-        const dx = e.clientX - prev.clientX, dy = e.clientY - prev.clientY;
-        if (start && Math.hypot(e.clientX - start.e.clientX, e.clientY - start.e.clientY) > 6) start.moved = true;
-        if (v.w >= MAP.w - 1) return v; // chưa phóng to thì không kéo (để cuộn trang bình thường)
-        return clamp({ ...v, x: v.x - dx * sx, y: v.y - dy * sy });
-      });
+      const prev = pts.get(e.pointerId), cur = { x: e.clientX, y: e.clientY };
+      if (pts.size >= 2) {
+        const others = [...pts.entries()].filter(([id]) => id !== e.pointerId).map(([, p]) => p)[0];
+        const d0 = Math.hypot(prev.x - others.x, prev.y - others.y), d1 = Math.hypot(cur.x - others.x, cur.y - others.y);
+        if (d0 > 0) setV((o) => zoomAround(o, d1 / d0, (cur.x + others.x) / 2, (cur.y + others.y) / 2));
+      } else {
+        const dx = cur.x - prev.x, dy = cur.y - prev.y; moved += Math.abs(dx) + Math.abs(dy);
+        setV((o) => clamp({ ...o, cx: o.cx - dx * o.s, cy: o.cy - dy * o.s }));
+      }
+      pts.set(e.pointerId, cur);
     };
-    const up = (e) => { pts.delete(e.pointerId); if (start?.moved) el.dataset.drag = '1'; setTimeout(() => { delete el.dataset.drag; }, 0); if (!pts.size) start = null; };
-    const wheel = (e) => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); setVb((v) => { const [cx, cy] = toMap(e, v); const k = e.deltaY < 0 ? 1.2 : 1 / 1.2; return clamp({ w: v.w / k, h: v.h / k, x: cx - (cx - v.x) / k, y: cy - (cy - v.y) / k }); }); };
+    const up = (e) => { pts.delete(e.pointerId); if (!pts.size) el.classList.remove('grab'); if (moved > 8) { el.dataset.drag = '1'; setTimeout(() => { delete el.dataset.drag; }, 0); } };
+    const wheel = (e) => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); tween.current?.kill(); setV((o) => zoomAround(o, Math.exp(-e.deltaY * 0.004), e.clientX, e.clientY)); };
     el.addEventListener('pointerdown', down); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
     el.addEventListener('wheel', wheel, { passive: false });
     return () => { el.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); el.removeEventListener('wheel', wheel); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  return { vb, zoomIn: () => zoomAt(1.5), zoomOut: () => zoomAt(1 / 1.5), reset: () => setVb({ x: 0, y: 0, w: MAP.w, h: MAP.h }), focus: (p) => setVb(clamp({ w: MAP.w / 3, h: MAP.h / 3, x: p.cx - MAP.w / 6, y: p.cy - MAP.h / 6 })) };
+  }, [size]); // eslint-disable-line react-hooks/exhaustive-deps
+  return {
+    v, size,
+    zoom: (k) => v && animateTo({ ...v, s: v.s / k }),
+    home: () => animateTo(fit(VN_BOX, size, window.innerWidth < 760 ? 1.02 : 1.12)),
+    world: () => animateTo(fit(WB, size, 1.02)),
+    focus: (p, kind) => animateTo({ cx: p.cx, cy: p.cy, s: kind === 'country' ? Math.max(1.2, (v?.s || 1)) : Math.min(0.45, v?.s || 1) }),
+  };
 }
 
 /* ---------- xem ảnh lớn: ảnh dọc hay ngang đều vừa màn hình ---------- */
@@ -192,110 +217,139 @@ function Panel({ prov, photos, note, canEdit, onClose, onView, onSavePhoto, onDe
   );
 }
 
+/* nơi chốn: 63 tỉnh thành (mã tỉnh) + các nước khác (mã "qg:<ISO>") */
+const PLACES = {};
+MAP.provinces.forEach((p) => { PLACES[p.id] = { ...p, kind: 'province' }; });
+WORLD.countries.forEach((c) => { PLACES['qg:' + c.id] = { id: 'qg:' + c.id, name: c.name, cx: c.cx, cy: c.cy, kind: 'country' }; });
+const NEAR = new Set(['CHN', 'LAO', 'KHM', 'THA', 'MMR', 'PHL', 'MYS', 'IDN', 'JPN', 'KOR', 'PRK', 'IND', 'TWN', 'BRN', 'SGP', 'BGD', 'AUS', 'MNG', 'NPL']);
+/* đường kinh tuyến / vĩ tuyến mỗi 15° (cùng phép chiếu với bản đồ) */
+const O = MAP.origin;
+const PX = (lon, lat) => [(lon - O.lon0) * O.k * O.cos + O.dx, (O.lat1 - lat) * O.k + O.dy];
+const GRATICULE = (() => {
+  let d = '';
+  for (let lon = -30; lon <= 330; lon += 15) { const [x1, y1] = PX(lon, 80), [, y2] = PX(lon, -60); d += `M${x1.toFixed(0)} ${y1.toFixed(0)}V${y2.toFixed(0)}`; }
+  for (let lat = -60; lat <= 75; lat += 15) { const [x1, y] = PX(-30, lat), [x2] = PX(330, lat); d += `M${x1.toFixed(0)} ${y.toFixed(0)}H${x2.toFixed(0)}`; }
+  return d;
+})();
+const SEAS = [['Biển Đông', 113.5, 14.2], ['Thái Bình Dương', 160, 18], ['Ấn Độ Dương', 80, -12], ['Đại Tây Dương', 330, 20]].map(([n, lon, lat]) => ({ n, xy: PX(lon, lat) }));
+
 export default function TravelPage() {
   const root = useRef(null);
-  const svgRef = useRef(null);
+  const boxRef = useRef(null);
   const ed = useEditable(travelData, 'travel');
   const notes = useEditableDoc(notesData, 'travelnotes');
   const [sel, setSel] = useState(null);
-  const [hover, setHover] = useState(null);
+  const [hover, setHover] = useState(null); // { id, x, y }
   const [view, setView] = useState(null);
   const [q, setQ] = useState('');
-  const zoom = useZoom(svgRef);
-  const byProv = useMemo(() => { const m = {}; ed.items.forEach((p) => { (m[p.province] = m[p.province] || []).push(p); }); return m; }, [ed.items]);
-  const visited = MAP.provinces.filter((p) => byProv[p.id]?.length);
-  const photos = sel ? byProv[sel] || [] : [];
-  const prov = sel ? BY_ID[sel] : null;
+  const [listOpen, setListOpen] = useState(() => window.innerWidth >= 900);
+  const map = useMapView(boxRef);
+  const byPlace = useMemo(() => { const m = {}; ed.items.forEach((p) => { (m[p.province] = m[p.province] || []).push(p); }); return m; }, [ed.items]);
+  const visitedProv = MAP.provinces.filter((p) => byPlace[p.id]?.length);
+  const visitedCountries = WORLD.countries.filter((c) => byPlace['qg:' + c.id]?.length);
+  const photos = sel ? byPlace[sel] || [] : [];
+  const place = sel ? PLACES[sel] : null;
+  const v = map.v;
+  const s = v?.s || 1;
+  const vb = v ? `${v.cx - (map.size.w * s) / 2} ${v.cy - (map.size.h * s) / 2} ${map.size.w * s} ${map.size.h * s}` : `0 0 ${MAP.w} ${MAP.h}`;
+  const px = (n) => n * s; // kích thước theo điểm ảnh màn hình, đổi ra đơn vị bản đồ
 
   useLayoutEffect(() => {
     if (reduced()) return undefined;
     const ctx = gsap.context(() => {
-      gsap.from('.tv-stats > *', { y: 20, opacity: 0, duration: 0.5, stagger: 0.08, ease: 'back.out(2)', delay: 0.15 });
-      gsap.fromTo('.tv-map .pv', { opacity: 0, scale: 0.6, transformOrigin: '50% 50%' }, { opacity: 1, scale: 1, duration: 0.5, stagger: { each: 0.012, from: 'random' }, ease: 'back.out(1.6)', delay: 0.2, clearProps: 'transform,opacity' });
-      gsap.from('.tv-arch, .tv-isl', { opacity: 0, scale: 0, transformOrigin: '50% 50%', duration: 0.6, stagger: 0.06, ease: 'back.out(2)', delay: 1 });
-      gsap.from('.tv-pin', { y: -30, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'bounce.out', delay: 1.3 });
+      gsap.from('.tvw-ui > *', { y: 20, opacity: 0, duration: 0.5, stagger: 0.08, ease: 'back.out(2)', delay: 0.3, clearProps: 'transform,opacity' });
+      gsap.fromTo('.tvw .pv', { opacity: 0 }, { opacity: 1, duration: 0.5, stagger: { each: 0.01, from: 'random' }, delay: 0.2, clearProps: 'opacity' });
+      gsap.from('.tvw-world', { opacity: 0, duration: 1.2, ease: 'power2.out' });
     }, root);
     return () => ctx.revert();
   }, []);
 
-  const savePhoto = async (v, file) => {
-    let image = v.image;
-    if (file) image = ed.demo ? URL.createObjectURL(file) : await uploadImage(file, v.title || 'du-lich');
-    const item = { ...v, image, id: v.id || newId() };
-    const next = v.id ? ed.items.map((x) => (x.id === v.id ? item : x)) : [item, ...ed.items];
+  const savePhoto = async (val, file) => {
+    let image = val.image;
+    if (file) image = ed.demo ? URL.createObjectURL(file) : await uploadImage(file, val.title || 'du-lich');
+    const item = { ...val, image, id: val.id || newId() };
+    const next = val.id ? ed.items.map((x) => (x.id === val.id ? item : x)) : [item, ...ed.items];
     if (!(await ed.save(next))) throw new Error(ed.status.error || 'Chưa lưu được, thử lại nhé');
   };
   const del = async (p) => { if (!window.confirm(`Xoá ảnh "${p.title}"?`)) return; await ed.save(ed.items.filter((x) => x.id !== p.id)); };
   const saveNote = (text) => notes.save({ ...(notes.doc || {}), [sel]: text });
-  const pick = (id) => { setSel(id); };
-  const list = MAP.provinces.filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()));
-  const tip = hover ? BY_ID[hover] : null;
-  const vbStr = `${zoom.vb.x} ${zoom.vb.y} ${zoom.vb.w} ${zoom.vb.h}`;
+  const open = (id) => { if (boxRef.current?.dataset.drag) return; setSel(id); };
+  const goTo = (id) => { const p = PLACES[id]; if (!p) return; map.focus(p, p.kind); setSel(id); if (window.innerWidth < 900) setListOpen(false); };
+  const tipAt = (e, id) => { const r = boxRef.current.getBoundingClientRect(); setHover({ id, x: e.clientX - r.left, y: e.clientY - r.top }); };
+  const tip = hover ? PLACES[hover.id] : null;
+  const found = Object.values(PLACES).filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()));
+  const showProvLabels = s < 0.35;
+  const labelCountries = WORLD.countries.filter((c) => (NEAR.has(c.id) && s < 9) || (c.big && s > 2.5));
 
   return (
-    <div className="tv" ref={root}>
-      <div className="tv-stats">
-        <span className="tv-stat"><b>{visited.length}</b>/63<small>tỉnh thành đã đến</small></span>
-        <span className="tv-stat"><b>{ed.items.length}</b><small>tấm ảnh</small></span>
-        <span className="tv-legend" aria-hidden="true"><i className="l0" />chưa đến<i className="l1" />1–2 ảnh<i className="l2" />3–5<i className="l3" />6+</span>
-      </div>
-
-      <div className="tv-stage">
-        <div className="tv-mapbox">
-          <svg ref={svgRef} className="tv-map" viewBox={vbStr} style={{ touchAction: zoom.vb.w < MAP.w - 1 ? 'none' : 'pan-y' }} role="img" aria-label="Bản đồ Việt Nam 63 tỉnh thành, có quần đảo Hoàng Sa và Trường Sa">
-            <defs>
-              <pattern id="tv-sea" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M0 9 Q 4.5 5 9 9 T 18 9" fill="none" stroke="rgba(80,130,200,0.18)" strokeWidth="1.2" /></pattern>
-            </defs>
-            <rect x={-MAP.w} y={-MAP.h} width={MAP.w * 3} height={MAP.h * 3} fill="url(#tv-sea)" />
-            {MAP.archipelagos.map((a) => (
-              <g key={a.name} className="tv-arch">
-                <circle cx={a.xy[0]} cy={a.xy[1]} r={a.r} />
-                {a.dots.map(([x, y], k) => <circle key={k} className="dot" cx={x} cy={y} r="3.2" />)}
-                <text x={a.xy[0]} y={a.xy[1] + a.r + 18} textAnchor="middle">{a.name}</text>
-              </g>
-            ))}
-            {MAP.provinces.map((p) => {
-              const n = byProv[p.id]?.length || 0;
-              return (
-                <path key={p.id} d={p.d} className={`pv l${level(n)} ${sel === p.id ? 'on' : ''} ${hover === p.id ? 'hov' : ''}`}
-                  onPointerEnter={() => setHover(p.id)} onPointerLeave={() => setHover((h) => (h === p.id ? null : h))}
-                  onClick={() => { if (svgRef.current?.dataset.drag) return; pick(p.id); }}
-                  tabIndex={0} role="button" aria-label={`${p.name}${n ? `, ${n} ảnh` : ''}`} onKeyDown={(e) => e.key === 'Enter' && pick(p.id)} />
-              );
+    <div className="tv tvw" ref={root}>
+      <div className="tvw-box" ref={boxRef}>
+        <svg className="tvw-map" viewBox={vb} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bản đồ thế giới, Việt Nam ở giữa với 63 tỉnh thành và quần đảo Hoàng Sa, Trường Sa">
+          <path className="tvw-grat" d={GRATICULE} />
+          {SEAS.map((x) => <text key={x.n} className="tvw-sea" x={x.xy[0]} y={x.xy[1]} fontSize={px(15)} textAnchor="middle">{x.n}</text>)}
+          <g className="tvw-world">
+            {WORLD.countries.map((c) => {
+              const id = 'qg:' + c.id, n = byPlace[id]?.length || 0;
+              return <path key={c.id} d={c.d} className={`ct l${level(n)} ${sel === id ? 'on' : ''} ${hover?.id === id ? 'hov' : ''}`}
+                onPointerMove={(e) => tipAt(e, id)} onPointerLeave={() => setHover(null)} onClick={() => open(id)} />;
             })}
-            {MAP.islands.map((s) => (
-              <g key={s.name} className="tv-isl"><circle cx={s.xy[0]} cy={s.xy[1]} r="2.6" /><text x={s.xy[0] + 6} y={s.xy[1] + 4}>{s.name}</text></g>
-            ))}
-            {visited.map((p) => <text key={p.id} className="tv-pin" x={p.cx} y={p.cy} textAnchor="middle">📍</text>)}
-          </svg>
-          <div className="tv-zoom">
-            <button onClick={zoom.zoomIn} aria-label="Phóng to">＋</button>
-            <button onClick={zoom.zoomOut} aria-label="Thu nhỏ">－</button>
-            <button onClick={zoom.reset} aria-label="Xem toàn bộ">⤢</button>
+          </g>
+          <g className="tvw-vn">
+            {MAP.provinces.map((p) => {
+              const n = byPlace[p.id]?.length || 0;
+              return <path key={p.id} d={p.d} className={`pv l${level(n)} ${sel === p.id ? 'on' : ''} ${hover?.id === p.id ? 'hov' : ''}`}
+                onPointerMove={(e) => tipAt(e, p.id)} onPointerLeave={() => setHover(null)} onClick={() => open(p.id)}
+                tabIndex={0} role="button" aria-label={`${p.name}${n ? `, ${n} ảnh` : ''}`} onKeyDown={(e) => e.key === 'Enter' && setSel(p.id)} />;
+            })}
+          </g>
+          {MAP.archipelagos.map((a) => (
+            <g key={a.name} className="tv-arch">
+              <circle cx={a.xy[0]} cy={a.xy[1]} r={a.r} />
+              {a.dots.map(([x, y], k) => <circle key={k} className="dot" cx={x} cy={y} r={px(2.8)} />)}
+              {s < 4 && <text x={a.xy[0]} y={a.xy[1] + a.r + px(16)} fontSize={px(13)} textAnchor="middle">{a.name}</text>}
+            </g>
+          ))}
+          {s < 3 && MAP.islands.map((x) => <g key={x.name} className="tv-isl"><circle cx={x.xy[0]} cy={x.xy[1]} r={px(2.4)} /><text x={x.xy[0] + px(6)} y={x.xy[1] + px(4)} fontSize={px(11)}>{x.name}</text></g>)}
+          {labelCountries.map((c) => <text key={c.id} className="tvw-cl" x={c.cx} y={c.cy} fontSize={px(12)} textAnchor="middle">{c.name}</text>)}
+          {showProvLabels && MAP.provinces.map((p) => <text key={p.id} className="tvw-pl" x={p.cx} y={p.cy} fontSize={px(10)} textAnchor="middle">{p.name}</text>)}
+          {[...visitedProv, ...visitedCountries.map((c) => PLACES['qg:' + c.id])].map((p) => <text key={p.id} className="tv-pin" x={p.cx} y={p.cy} fontSize={px(22)} textAnchor="middle">📍</text>)}
+        </svg>
+
+        {tip && hover && <div className="tv-tip tvw-tip" style={{ left: hover.x + 14, top: hover.y + 14 }} aria-hidden="true"><b>{tip.name}</b><small>{byPlace[tip.id]?.length ? `${byPlace[tip.id].length} ảnh · bấm để xem` : tip.kind === 'country' ? 'chưa có ảnh' : 'chưa có ảnh'}</small></div>}
+
+        <div className="tvw-ui">
+          <div className="tvw-glass tvw-stats">
+            <span><b>{visitedProv.length}<em>/63</em></b><small>tỉnh thành</small></span>
+            <span><b>{visitedCountries.length}</b><small>quốc gia khác</small></span>
+            <span><b>{ed.items.length}</b><small>tấm ảnh</small></span>
           </div>
-          {tip && <div className="tv-tip" aria-hidden="true"><b>{tip.name}</b><small>{byProv[tip.id]?.length ? `${byProv[tip.id].length} ảnh · bấm để xem` : 'chưa có ảnh'}</small></div>}
+          <div className="tvw-ctrl">
+            <button onClick={() => map.zoom(1.6)} aria-label="Phóng to">＋</button>
+            <button onClick={() => map.zoom(1 / 1.6)} aria-label="Thu nhỏ">－</button>
+            <button onClick={map.home} aria-label="Về Việt Nam" title="Về Việt Nam" className="vn">VN</button>
+            <button onClick={map.world} aria-label="Xem cả thế giới" title="Cả thế giới">🌏</button>
+          </div>
+          <div className={`tvw-glass tvw-list ${listOpen ? 'open' : ''}`}>
+            <button className="tvw-list-t" onClick={() => setListOpen(!listOpen)} aria-expanded={listOpen}>🧭 Những nơi đã đến <b>{visitedProv.length + visitedCountries.length}</b><i>{listOpen ? '▾' : '▸'}</i></button>
+            {listOpen && (
+              <div className="tvw-list-b" data-lenis-prevent>
+                <ul className="tv-visited">
+                  {[...visitedProv, ...visitedCountries.map((c) => PLACES['qg:' + c.id])].map((p) => <li key={p.id}><button onClick={() => goTo(p.id)}><b>{p.kind === 'country' ? '🌐 ' : ''}{p.name}</b><small>{byPlace[p.id].length} ảnh</small></button></li>)}
+                </ul>
+                <input className="tv-search" placeholder="Tìm tỉnh thành, quốc gia…" value={q} onChange={(e) => setQ(e.target.value)} />
+                {q && <div className="tv-chips">{found.slice(0, 40).map((p) => <button key={p.id} className={byPlace[p.id]?.length ? 'v' : ''} onClick={() => goTo(p.id)}>{p.kind === 'country' ? '🌐 ' : ''}{p.name}</button>)}</div>}
+              </div>
+            )}
+          </div>
+          <div className="tvw-glass tvw-legend" aria-hidden="true"><i className="l0" />chưa đến<i className="l1" />1–2 ảnh<i className="l2" />3–5<i className="l3" />6+</div>
         </div>
-
-        <aside className="tv-side">
-          <h3>Những nơi đã đến</h3>
-          {visited.length ? (
-            <ul className="tv-visited">
-              {visited.map((p) => <li key={p.id}><button onClick={() => { pick(p.id); zoom.focus(p); }}><b>{p.name}</b><small>{byProv[p.id].length} ảnh</small></button></li>)}
-            </ul>
-          ) : <p className="tv-empty">Chưa có chuyến đi nào được ghi lại.</p>}
-          <h3>Tìm tỉnh thành</h3>
-          <input className="tv-search" placeholder="Nhập tên tỉnh…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="tv-chips">{list.map((p) => <button key={p.id} className={byProv[p.id]?.length ? 'v' : ''} onClick={() => { pick(p.id); zoom.focus(p); }}>{p.name}</button>)}</div>
-        </aside>
       </div>
-      <p className="tv-hint">Bấm vào một tỉnh để xem ảnh. Phóng to bằng nút ＋ (hoặc Ctrl + lăn chuột trên máy tính), phóng to rồi kéo để di chuyển.</p>
-      <p className="tv-src">Bản đồ 63 tỉnh thành trước khi sắp xếp lại năm 2025 · ranh giới: geoBoundaries (Public Domain) · Quần đảo Hoàng Sa và Trường Sa là của Việt Nam.</p>
 
-      {prov && (
-        <Panel prov={prov} photos={photos} note={(notes.doc || {})[prov.id]} canEdit={ed.canEdit}
+      {place && (
+        <Panel prov={place} photos={photos} note={(notes.doc || {})[place.id]} canEdit={ed.canEdit}
           onClose={() => setSel(null)} onView={(k) => setView(k)} onSavePhoto={savePhoto} onDelete={del} onSaveNote={saveNote} />
       )}
-      {prov && view != null && photos[view] && <Viewer list={photos} at={view} onClose={() => setView(null)} />}
+      {place && view != null && photos[view] && <Viewer list={photos} at={view} onClose={() => setView(null)} />}
     </div>
   );
 }
