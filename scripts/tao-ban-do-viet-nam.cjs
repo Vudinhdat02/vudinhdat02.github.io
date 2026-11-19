@@ -1,5 +1,6 @@
-// Cách dùng: tải geoBoundaries-VNM-ADM1_simplified.geojson (https://www.geoboundaries.org, gbOpen VNM ADM1, Public Domain)
-// rồi chạy: node scripts/tao-ban-do-viet-nam.cjs <file.geojson> src/data/vnmap.json
+// Cách dùng: tải geoBoundaries-VNM-ADM1_simplified.geojson (https://www.geoboundaries.org, gbOpen VNM ADM1, Public Domain),
+// (bản simplified của geoBoundaries đã giữ ranh giới chung giữa các tỉnh, nên dùng nguyên toạ độ, không đơn giản hoá thêm)
+// rồi chạy: node scripts/tao-ban-do-viet-nam.cjs geoBoundaries-VNM-ADM1_simplified.geojson src/data/vnmap.json
 // Chuyển GeoJSON 64 đơn vị (geoBoundaries VNM ADM1, Public Domain) thành đường SVG gọn cho 63 tỉnh thành
 // (Côn Đảo gộp vào Bà Rịa – Vũng Tàu), kèm nhãn quần đảo Hoàng Sa, Trường Sa và các đảo lớn.
 const fs = require('fs');
@@ -25,7 +26,8 @@ function dp(pts, eps) {
 const ringD = (ring) => {
   let pts = ring.map(P);
   const area = Math.abs(pts.reduce((s, p, i) => { const q = pts[(i + 1) % pts.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0) / 2);
-  const eps = area < 40 ? 0.15 : 0.55, m = Math.floor(pts.length / 2);
+  // không đơn giản hoá thêm (eps = 0) để biên các tỉnh khớp nhau tuyệt đối
+  const eps = 0, m = Math.floor(pts.length / 2);
   pts = pts.length < 8 ? pts : [...dp(pts.slice(0, m + 1), eps).slice(0, -1), ...dp(pts.slice(m), eps)];
   if (pts.length < 3) return '';
   return 'M' + pts.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L') + 'Z';
