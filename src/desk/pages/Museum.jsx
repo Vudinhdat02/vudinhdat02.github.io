@@ -1,5 +1,5 @@
 /*
- * Trang "Thành tích": "Phiêu lưu ký" qua Vùng đất Tri Thức, mỗi năm một vùng đất, mỗi thành tích một nhiệm vụ (AdventureBook).
+ * Trang "Thành tích": "Tạp chí Thành tích" — mỗi năm một số báo, trang nhất kiểu báo cổ (Magazine).
  * Trang này không phát âm thanh.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import data from '../../data/achievements.json';
+import statsData from '../../data/stats.json';
 import { asset } from '../../utils/asset';
 import { reduced } from '../Fx';
 import { ListEditor, useEditable } from '../Editor';
@@ -55,142 +56,99 @@ const Medal = () => (
   </span>
 );
 
-/* ---------- "Phiêu lưu ký": hành trình qua các vùng đất, mỗi năm là một vùng ----------
- *  Trên cùng: tấm bản đồ kho báu vẽ tay (giấy da) nối các vùng đất; bảng chỉ số nhân vật (cấp, kinh nghiệm,
- *  số nhiệm vụ theo loại) dính trên đầu khi cuộn và tăng dần theo hành trình.
- *  Mỗi vùng: thẻ tên vùng lướt vào, sương mù tan dần, đường mòn tự vẽ, nhân vật đi theo thanh cuộn,
- *  lời kể gõ từng chữ như trong trò chơi; bên cạnh là các nhiệm vụ (mỗi thành tích một nhiệm vụ):
- *  cuộn giấy mở ra, rương báu bật nắp thành huy chương, cộng điểm kinh nghiệm, lên cấp khi sang vùng mới.
- *  Cuối cùng: "Hành trình tiếp tục…". Trang này không phát âm thanh. */
+/* ---------- "Tạp chí Thành tích": mỗi năm là một số báo (trang nhất kiểu báo cổ) ----------
+ *  Đầu báo chữ gô-tích, dải thông tin số báo, tin chính (thành tích tiêu biểu / mới nhất của năm) với ảnh lớn,
+ *  các cột tin phụ, hộp "Bảng tin" (số liệu), hộp "Mục rao vặt" vui, nhãn tròn "TIN NÓNG".
+ *  Chuyển giữa các số báo bằng nút, phím ← → hoặc vuốt: trang báo lật như giở báo.
+ *  Ảnh in kiểu báo cũ (ngả màu nâu), rê chuột vào thì hiện màu thật; ảnh dọc / ngang đều hiện trọn.
+ *  Bấm vào một tin để mở giấy khen. Trang này không phát âm thanh. */
 const CAT = { 'Học tập': 'c-hoc', 'Hoạt động': 'c-hd', 'Cuộc thi': 'c-thi' };
-const REWARD = { 'Học tập': '🎖️', 'Hoạt động': '🏅', 'Cuộc thi': '🏆' };
-const WORLDS = [
-  { name: 'Làng Khởi Đầu', icon: '🏡', sky: 'sky-dawn', props: ['🌾', '🐓', '🌳'], hero: '🧒', story: 'Ngày ấy, cậu học trò Đạt khoác chiếc ba lô nhỏ rời làng, mang theo một ước mơ lớn: chinh phục vùng đất Tri Thức.' },
-  { name: 'Thành Phố Học Viện', icon: '🏰', sky: 'sky-day', props: ['📜', '🦉', '📚'], hero: '🧑', story: 'Cổng thành Học Viện mở ra. Mỗi kỳ thi là một cánh cửa, sau cánh cửa là những cuộn giấy khen đang chờ.' },
-  { name: 'Rừng Thử Thách', icon: '🌲', sky: 'sky-noon', props: ['🍄', '🦊', '🌲'], hero: '🧑‍💻', story: 'Khu rừng đầy bài kiểm tra và những đêm thức trắng bên máy tính, nhưng mỗi bước chân đều tìm thấy kho báu.' },
-  { name: 'Núi Danh Dự', icon: '🏔️', sky: 'sky-sunset', props: ['🦅', '⛺', '🚩'], hero: '🧑‍🔬', story: 'Đường lên núi dốc và dài. Đạt lần lượt cắm cờ trên những đỉnh khó nhất, gom về cả một túi huy chương.' },
-  { name: 'Đỉnh Sáng Tạo', icon: '🌋', sky: 'sky-night', props: ['🛰️', '✨', '🚀'], hero: '🧑‍🎓', story: 'Trên đỉnh cao nhất, những ý tưởng mới bắt đầu bay lên như vệ tinh. Cuộc phiêu lưu bước sang hồi mới.' },
+const KICKER = { 'Học tập': 'Giáo dục', 'Hoạt động': 'Đời sống – Xã hội', 'Cuộc thi': 'Thể thao trí tuệ' };
+const ADS = [
+  ['CẦN TÌM', 'Đồng đội làm dự án IoT, mê ESP32 và cà phê đen. Liên hệ: mục Liên hệ trên trang này.'],
+  ['CHO THUÊ', 'Một chiếc bàn phím cơ kêu lách cách, bao vui, không bao yên tĩnh.'],
+  ['TẶNG', '1 nụ cười cho bất kỳ ai đọc hết số báo này.'],
+  ['TUYỂN', 'Nhà tuyển dụng muốn có một kỹ sư chăm chỉ — xem ngay mục CV.'],
 ];
-const OPENERS = {
-  'Học tập': ['Vượt qua thử thách học thuật, nhận', 'Giải xong bài toán khó nhất vùng, mở được', 'Sau nhiều đêm ôn luyện, giành lấy'],
-  'Hoạt động': ['Giúp đỡ dân làng, được trao', 'Cùng đồng đội hoàn thành nhiệm vụ, nhận', 'Lan toả năng lượng tích cực, đổi lấy'],
-  'Cuộc thi': ['Đánh bại các đối thủ trong giải đấu, giành', 'Bước lên sàn đấu và chiến thắng, mang về'],
+const SCHOL = /học\s*b[ổọo]ng|KKHT/i;
+const leadOf = (list) => [...list].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || String(b.date).localeCompare(String(a.date)))[0];
+const headline = (a, y) => (a.featured ? `${a.title}: dấu son của năm ${y}` : `${a.title} — thêm một cột mốc năm ${y}`);
+const story = (a, y) => {
+  const d = a.desc && !/^https?:\/\//.test(a.desc) ? a.desc.replace(/\s*https?:\/\/\S+/g, '').trim() : '';
+  const base = `PV Tạp chí Thành tích — Năm ${y}, Vũ Đình Đạt ghi tên mình vào danh sách “${a.title}”${a.category ? ` ở mảng ${a.category.toLowerCase()}` : ''}.`;
+  return d ? `${base} ${d.endsWith('.') ? d : d + '.'}` : `${base} Một bước tiến nhỏ trên hành trình dài, nhưng là niềm vui lớn của cả “toà soạn”.`;
 };
-const XP_PER = 120;
-const tell = (a, k) => { const o = OPENERS[a.category] || ['Hoàn thành nhiệm vụ, nhận']; return `${o[k % o.length]} “${a.title}”.`; };
-function burstAt(x, y) {
-  if (reduced()) return;
-  const host = document.createElement('div'); host.className = 'yb-burst'; document.body.appendChild(host);
-  const cs = ['#ffe14d', '#d33a2c', '#6aa9f0', '#7ccf8a', '#ef7d57', '#b58cf0'];
-  for (let k = 0; k < 18; k++) {
-    const s = document.createElement('i');
-    if (k % 4 === 0) { s.textContent = ['⭐', '💎', '🪙', '✨'][(k / 4) % 4]; s.className = 'emo'; } else s.style.background = cs[k % cs.length];
-    s.style.left = x + 'px'; s.style.top = y + 'px'; host.appendChild(s);
-    const a = (k / 18) * Math.PI * 2 + Math.random() * 0.3, d = 50 + Math.random() * 70;
-    gsap.fromTo(s, { x: 0, y: 0, scale: 0.4, rotate: 0, opacity: 1 }, { x: Math.cos(a) * d, y: Math.sin(a) * d + 30, scale: 1, rotate: gsap.utils.random(-360, 360), opacity: 0, duration: 0.9, ease: 'power3.out' });
-  }
-  setTimeout(() => host.remove(), 1000);
-}
-function AdventureBook({ items, onOpen }) {
+function Magazine({ items, onOpen }) {
   const root = useRef(null);
   const [tab, setTab] = useState('all');
   const cats = [...new Set(items.map((a) => a.category).filter(Boolean))];
   const shown = tab === 'all' ? items : tab === 'gold' ? items.filter((a) => a.featured) : items.filter((a) => a.category === tab);
-  const regions = [];
-  shown.forEach((a) => { const y = a.year || 'Khác'; const g = regions[regions.length - 1]; if (g && g.y === y) g.list.push(a); else regions.push({ y, list: [a] }); });
-  const world = (c) => WORLDS[Math.min(c, WORLDS.length - 1)];
+  const issues = useMemo(() => {
+    const m = new Map(); shown.forEach((a) => { const y = a.year || 0; if (!m.has(y)) m.set(y, []); m.get(y).push(a); });
+    return [...m.entries()].sort((a, b) => b[0] - a[0]).map(([y, list], k, arr) => ({ y, list, no: arr.length - k }));
+  }, [shown]);
+  const [at, setAt] = useState(0);
+  const busy = useRef(false);
+  const issue = issues[Math.min(at, issues.length - 1)];
+  const years = items.map((a) => a.year).filter(Boolean);
+  const span = years.length ? `${Math.min(...years)} – ${Math.max(...years)}` : '';
   const count = (c) => items.filter((a) => a.category === c).length;
-  const { lenis } = useDiary() || {};
-  const goRegion = (c) => { const el = root.current?.querySelector(`[data-region="${c}"]`); if (!el) return; const y = el.getBoundingClientRect().top + window.scrollY - 150; if (lenis?.current) lenis.current.scrollTo(y, { duration: 1.2 }); else window.scrollTo({ top: y, behavior: 'smooth' }); };
+  const gpa = (statsData.find((s) => /gpa/i.test(s.label || '')) || {}).value || '';
+  useEffect(() => { setAt(0); }, [tab]);
 
-  /* mở màn: bản đồ kho báu tự vẽ đường, các vùng đất hiện ra */
+  /* lật sang số báo khác: trang cũ gập lại, trang mới mở ra */
+  const go = (to) => {
+    if (busy.current || !issues.length) return;
+    const n = (to + issues.length) % issues.length; if (n === at) return;
+    const page = root.current.querySelector('.mg-page');
+    if (reduced() || !page) { setAt(n); return; }
+    busy.current = true; const d = n > at ? 1 : -1;
+    gsap.to(page, { rotateY: -80 * d, opacity: 0, transformOrigin: d > 0 ? '0% 50%' : '100% 50%', duration: 0.45, ease: 'power2.in', onComplete: () => { setAt(n); requestAnimationFrame(() => {
+      const p2 = root.current?.querySelector('.mg-page'); if (!p2) { busy.current = false; return; }
+      gsap.fromTo(p2, { rotateY: 80 * d, opacity: 0, transformOrigin: d > 0 ? '100% 50%' : '0% 50%' }, { rotateY: 0, opacity: 1, duration: 0.6, ease: 'power3.out', clearProps: 'transform,opacity', onComplete: () => { busy.current = false; } });
+    }); } });
+  };
+  useEffect(() => {
+    const k = (e) => { if (e.target.closest?.('input,textarea') || document.querySelector('.hd-wrap')) return; if (e.key === 'ArrowRight') go(at + 1); if (e.key === 'ArrowLeft') go(at - 1); };
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
+  });
+  const touch = useRef(null);
+
+  /* mở màn mỗi số báo: tờ báo xoay bay vào, chữ đầu báo rơi xuống, các cột chữ hiện dần, nhãn "TIN NÓNG" bật ra */
   useLayoutEffect(() => {
-    if (reduced()) return undefined;
+    if (reduced() || !issue) return undefined;
     const ctx = gsap.context(() => {
-      gsap.fromTo('.yb-sum > *', { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: 'back.out(2)', delay: 0.1, clearProps: 'transform,opacity' });
-      const path = root.current.querySelector('.qv-map path.route');
-      if (path) { const l = path.getTotalLength(); gsap.fromTo(path, { strokeDasharray: `${l} ${l}`, strokeDashoffset: l }, { strokeDashoffset: 0, duration: 2, ease: 'power2.inOut', delay: 0.3, onComplete: () => { path.style.strokeDasharray = '10 9'; path.style.strokeDashoffset = '0'; } }); }
-      gsap.from('.qv-spot', { scale: 0, y: 20, duration: 0.5, stagger: 0.25, ease: 'back.out(2.5)', delay: 0.5 });
-      gsap.from('.qv-map .x', { scale: 0, rotate: -180, duration: 0.6, ease: 'back.out(3)', delay: 2.1 });
+      const tl = gsap.timeline({ scrollTrigger: { trigger: '.mg-page', start: 'top 85%', once: true } });
+      tl.from('.mg-page', { y: 80, rotate: -6, scale: 0.9, opacity: 0, duration: 0.8, ease: 'power3.out', clearProps: 'transform,opacity' })
+        .from('.mg-mast .ch', { y: -50, opacity: 0, rotate: () => gsap.utils.random(-30, 30), duration: 0.5, stagger: 0.035, ease: 'back.out(2)' }, 0.3)
+        .from('.mg-rule, .mg-bar > *', { scaleX: 0, opacity: 0, duration: 0.4, stagger: 0.05, transformOrigin: '0% 50%' }, 0.6)
+        .from('.mg-lead h3, .mg-story h4', { clipPath: 'inset(0 100% 0 0)', duration: 0.6, stagger: 0.08, ease: 'power2.out' }, 0.8)
+        .from('.mg-col p, .mg-box li', { opacity: 0, y: 8, duration: 0.35, stagger: 0.03 }, 1)
+        .from('.mg-fig', { scale: 0.85, opacity: 0, duration: 0.6, stagger: 0.06, ease: 'back.out(1.5)' }, 0.9)
+        .from('.mg-hot', { scale: 0, rotate: -200, duration: 0.7, ease: 'back.out(2.6)' }, 1.3)
+        .fromTo('.mg-stamp', { scale: 2.6, opacity: 0, rotate: -30 }, { scale: 1, opacity: 0.9, rotate: -10, duration: 0.3, ease: 'power4.in', stagger: 0.12 }, 1.5);
     }, root);
     return () => ctx.revert();
-  }, [tab]);
-
-  /* từng vùng đất: thẻ tên lướt vào, sương tan, đường mòn vẽ ra, lời kể gõ chữ, nhiệm vụ mở ra; chỉ số tăng dần */
+  }, [issue?.y, tab]); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
-    const el = root.current; if (!el) return undefined;
-    const hud = { lv: el.querySelector('.qv-lv'), xp: el.querySelector('.qv-xp'), bar: el.querySelector('.qv-bar i'), n: el.querySelector('.qv-n') };
-    const byCat = {}; el.querySelectorAll('.qv-cnt').forEach((c) => { byCat[c.dataset.c] = c; });
-    const done = new Set(); let level = 0;
-    const total = shown.length;
-    const award = (card) => {
-      if (done.has(card)) return; done.add(card);
-      if (hud.n) hud.n.textContent = String(done.size);
-      if (hud.xp) hud.xp.textContent = String(done.size * XP_PER);
-      if (hud.bar) hud.bar.style.transform = `scaleX(${total ? done.size / total : 0})`;
-      const c = byCat[card.dataset.c]; if (c) c.textContent = String(+c.textContent + 1);
-      card.classList.add('open');
-    };
-    const levelUp = (c, name) => {
-      if (c + 1 <= level) return; level = c + 1;
-      if (hud.lv) hud.lv.textContent = String(level);
-      const t = el.querySelector('.qv-toast'); if (!t) return;
-      t.querySelector('b').textContent = `Lên cấp ${level}!`; t.querySelector('small').textContent = `Đã tới ${name}`;
-      if (reduced()) return;
-      gsap.killTweensOf(t);
-      gsap.timeline().fromTo(t, { y: -30, scale: 0.6, autoAlpha: 0 }, { y: 0, scale: 1, autoAlpha: 1, duration: 0.45, ease: 'back.out(2.4)' }).to(t, { autoAlpha: 0, y: -20, duration: 0.4, delay: 1.6 });
-    };
-    const type = (p) => {
-      const full = p.dataset.text || ''; if (reduced()) { p.textContent = full; return; }
-      let i = 0; p.textContent = '';
-      const id = setInterval(() => { i += 2; p.textContent = full.slice(0, i); if (i >= full.length) clearInterval(id); }, 28);
-    };
-    if (reduced()) {
-      el.querySelectorAll('.qv-tell').forEach(type);
-      el.querySelectorAll('.qv-card').forEach(award);
-      el.querySelectorAll('.qv-region').forEach((r) => levelUp(+r.dataset.region, r.dataset.name));
-      return undefined;
-    }
-    const ctx = gsap.context(() => {
-      gsap.utils.toArray(el.querySelectorAll('.qv-region')).forEach((rg) => {
-        const c = +rg.dataset.region;
-        const tl = gsap.timeline({ scrollTrigger: { trigger: rg, start: 'top 75%', once: true, onEnter: () => levelUp(c, rg.dataset.name) } });
-        tl.from(rg.querySelector('.qv-title'), { x: -80, skewX: -12, opacity: 0, duration: 0.6, ease: 'power3.out' })
-          .to(rg.querySelector('.qv-fog'), { opacity: 0, scale: 1.4, duration: 1.2, ease: 'power2.out' }, 0.2)
-          .from(rg.querySelector('.qv-land'), { y: 50, scale: 0.6, opacity: 0, duration: 0.7, ease: 'back.out(2)' }, 0.4)
-          .from(rg.querySelectorAll('.sb-prop'), { y: -40, opacity: 0, rotate: () => gsap.utils.random(-60, 60), duration: 0.6, stagger: 0.1, ease: 'bounce.out' }, 0.6)
-          .add(() => type(rg.querySelector('.qv-tell')), 0.9);
-        const trail = rg.querySelector('.qv-trail path');
-        if (trail) { const l = trail.getTotalLength(); gsap.fromTo(trail, { strokeDasharray: `${l} ${l}`, strokeDashoffset: l }, { strokeDashoffset: 0, ease: 'none', scrollTrigger: { trigger: rg, start: 'top 70%', end: 'bottom 60%', scrub: 0.6 } }); }
-        // nhân vật đi dọc đường mòn theo thanh cuộn (không giữ trang lại)
-        gsap.fromTo(rg.querySelector('.qv-hero'), { left: '6%' }, { left: '74%', ease: 'none', scrollTrigger: { trigger: rg, start: 'top 70%', end: 'bottom 60%', scrub: 0.6 } });
-        gsap.to(rg.querySelector('.sb-cloud'), { xPercent: 80, ease: 'none', scrollTrigger: { trigger: rg, start: 'top bottom', end: 'bottom top', scrub: 0.8 } });
-        rg.querySelectorAll('.qv-card').forEach((card, k) => {
-          gsap.timeline({ scrollTrigger: { trigger: card, start: 'top 86%', once: true } })
-            .fromTo(card, { clipPath: 'inset(0 0 100% 0 round 14px)', y: 30 }, { clipPath: 'inset(0 0 0% 0 round 14px)', y: 0, duration: 0.7, ease: 'power3.out', delay: (k % 3) * 0.1, clearProps: 'clipPath,transform' })
-            .from(card.querySelector('.qv-roll'), { scaleY: 0, transformOrigin: '50% 0%', duration: 0.3 }, 0)
-            .to(card.querySelector('.qv-roll'), { y: () => card.offsetHeight, duration: 0.7, ease: 'power3.out' }, 0)
-            .to(card.querySelector('.qv-roll'), { opacity: 0, duration: 0.2 })
-            .fromTo(card.querySelector('.qv-chest'), { rotate: 0 }, { keyframes: [{ rotate: -14 }, { rotate: 12 }, { rotate: -8 }, { rotate: 0 }], duration: 0.4 }, 0.5)
-            .add(() => award(card), 0.9)
-            .fromTo(card.querySelectorAll('.qv-xpgain'), { y: 0, opacity: 0 }, { keyframes: [{ y: -16, opacity: 1, duration: 0.3 }, { y: -40, opacity: 0, duration: 0.6 }] }, 0.95)
-            .fromTo(card.querySelectorAll('.sb-stamp'), { scale: 2.8, opacity: 0, rotate: -40 }, { scale: 1, opacity: 0.92, rotate: -12, duration: 0.3, ease: 'power4.in' }, 1.1);
-        });
-      });
-      gsap.timeline({ scrollTrigger: { trigger: el.querySelector('.qv-end'), start: 'top 88%', once: true } })
-        .from(el.querySelectorAll('.qv-end .sb-cap'), { y: 60, rotate: -200, opacity: 0, duration: 1, ease: 'back.out(1.6)' })
-        .from(el.querySelectorAll('.qv-end b, .qv-end p'), { y: 20, opacity: 0, stagger: 0.1, duration: 0.5 }, 0.4);
-      ScrollTrigger.refresh();
-    }, el);
+    if (reduced()) return undefined;
+    const ctx = gsap.context(() => { gsap.fromTo('.yb-sum > *, .mg-issues > *', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, stagger: 0.04, ease: 'back.out(2)', delay: 0.1, clearProps: 'transform,opacity' }); }, root);
     return () => ctx.revert();
-  }, [tab, items]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const pick = (t) => { if (t !== tab) setTab(t); };
-  const W = 1000, H = 150;
-  const spots = regions.map((_, c) => ({ x: 70 + (regions.length > 1 ? (c * (W - 140)) / (regions.length - 1) : (W - 140) / 2), y: c % 2 ? 46 : 104 }));
-  const route = spots.length ? spots.reduce((d, p, k) => (k ? `${d} Q ${(spots[k - 1].x + p.x) / 2} ${k % 2 ? 6 : 144}, ${p.x} ${p.y}` : `M ${p.x - 50} ${p.y}`), '') : '';
+  const openA = (e, a) => onOpen(a.n, e.currentTarget.querySelector('.mg-fig img') || e.currentTarget);
+  const Fig = ({ a, big, stamp }) => (
+    <span className={`mg-fig ${big ? 'big' : ''} ${a.ar < 0.95 ? 'tall' : 'wide'}`}>
+      {a.img ? <img src={a.img} alt={a.title} loading={big ? 'eager' : 'lazy'} draggable="false" onLoad={(e) => { const im = e.currentTarget, tall = im.naturalHeight > im.naturalWidth * 1.05, f = im.closest('.mg-fig'); f?.classList.toggle('tall', tall); f?.classList.toggle('wide', !tall); }} /> : <span className="yb-ph">{IC[a.category] || '✦'}</span>}
+      {stamp && a.featured && <span className="mg-stamp" aria-hidden="true">Tiêu biểu</span>}
+    </span>
+  );
+  const lead = issue ? leadOf(issue.list) : null;
+  const rest = issue ? issue.list.filter((a) => a !== lead) : [];
+  const mast = 'Tạp chí Thành tích';
   return (
-    <div className="yb sb qv" ref={root}>
+    <div className="mg" ref={root}>
       <div className="yb-sum" role="tablist" aria-label="Lọc thành tích">
         <button role="tab" aria-selected={tab === 'all'} className={`yb-chip all ${tab === 'all' ? 'on' : ''}`} onClick={() => pick('all')}><b>{items.length}</b><span>Tất cả</span></button>
         {cats.map((c) => (
@@ -199,81 +157,78 @@ function AdventureBook({ items, onOpen }) {
         <button role="tab" aria-selected={tab === 'gold'} className={`yb-chip gold ${tab === 'gold' ? 'on' : ''}`} onClick={() => pick('gold')}><i aria-hidden="true">⭐</i><b>{items.filter((a) => a.featured).length}</b><span>Tiêu biểu</span></button>
       </div>
 
-      {/* bản đồ kho báu */}
-      <header className="qv-cover">
-        <div className="qv-cover-t"><span aria-hidden="true">📜</span><div><h2>Phiêu lưu ký: <em>Vùng đất Tri Thức</em></h2><p>Mỗi năm là một vùng đất, mỗi thành tích là một nhiệm vụ đã hoàn thành. Cuộn xuống để cùng Đạt lên đường!</p></div></div>
-        <svg className="qv-map" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-          <path className="route" d={route} />
-          {spots.length > 0 && <text className="x" x={spots[spots.length - 1].x + 40} y={spots[spots.length - 1].y + 8}>✖</text>}
-        </svg>
-        <div className="qv-spots">
-          {regions.map((g, c) => (
-            <button key={g.y} className="qv-spot" style={{ left: `${(spots[c].x / W) * 100}%`, top: `${(spots[c].y / H) * 100}%` }} onClick={() => goRegion(c)}>
-              <i aria-hidden="true">{world(c).icon}</i><b>{world(c).name}</b><small>{g.y}</small>
-            </button>
-          ))}
-        </div>
-      </header>
-
-      {/* bảng chỉ số nhân vật */}
-      <div className="qv-hud" aria-live="off" key={'hud-' + tab}>
-        <span className="qv-ava" aria-hidden="true">🧑‍🎓</span>
-        <span className="qv-stat"><small>Cấp</small><b className="qv-lv">0</b></span>
-        <span className="qv-stat grow"><small>Kinh nghiệm · <b className="qv-xp">0</b> XP</small><span className="qv-bar"><i /></span></span>
-        <span className="qv-stat"><small>Nhiệm vụ</small><b><span className="qv-n">0</span>/{shown.length}</b></span>
-        {cats.map((c) => <span key={c} className={`qv-stat mini ${CAT[c] || ''}`} title={c}><i aria-hidden="true">{IC[c] || '✦'}</i><b className="qv-cnt" data-c={c}>0</b></span>)}
-      </div>
-      <div className="qv-toast" aria-hidden="true"><b /><small /></div>
-
-      {regions.map((g, c) => {
-        const w = world(c);
-        return (
-          <section className={`sb-ch qv-region ${c % 2 ? 'alt' : ''} ${g.list.length === 1 ? 'one' : ''}`} key={tab + g.y} data-region={c} data-name={w.name}>
-            <h3 className="qv-title"><small>Vùng {c + 1} · {g.y}</small>{w.icon} {w.name}</h3>
-            <div className="sb-grid">
-              <div className="sb-stage">
-                <div className={`sb-scene ${w.sky}`} aria-hidden="true">
-                  <span className="sb-sun">{w.sky === 'sky-night' ? '🌙' : '☀️'}</span>
-                  <span className="sb-cloud">☁️</span>
-                  <span className="qv-land"><i>{w.icon}</i></span>
-                  <span className="sb-ground" />
-                  <svg className="qv-trail" viewBox="0 0 300 60" preserveAspectRatio="none"><path d="M10 40 C 70 10, 120 58, 170 34 S 260 14, 292 30" /></svg>
-                  {w.props.map((p, k) => <span key={k} className={`sb-prop p${k}`}>{p}</span>)}
-                  <span className="qv-hero"><i>{w.hero}</i><b>🎒</b></span>
-                  <span className="qv-fog" />
-                </div>
-                <p className="sb-bubble qv-tell" data-text={w.story} aria-label={w.story}>{w.story}</p>
-              </div>
-              <div className="sb-panels">
-                {g.list.map((a, k) => (
-                  <button key={a.id || a.n} data-c={a.category} className={`sb-panel qv-card ${CAT[a.category] || ''} ${a.featured ? 'star' : ''} ${a.ar < 0.95 ? 'tall' : 'wide'}`}
-                    onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); burstAt(r.left + r.width / 2, r.top + 40); onOpen(a.n, e.currentTarget.querySelector('.sb-pic') || e.currentTarget); }}
-                    aria-label={`Xem chi tiết: ${a.title}`}>
-                    <span className="qv-head"><span>⚔️ Nhiệm vụ {k + 1}</span><span className="qv-chest" aria-hidden="true"><i className="shut">🧰</i><i className="won">{a.featured ? '👑' : REWARD[a.category] || '🏅'}</i></span></span>
-                    <span className="sb-pic">{a.img ? <img src={a.img} alt="" loading="lazy" draggable="false" onLoad={(e) => { const im = e.currentTarget, tall = im.naturalHeight > im.naturalWidth * 1.05, pn = im.closest('.sb-panel'); pn?.classList.toggle('tall', tall); pn?.classList.toggle('wide', !tall); }} /> : <span className="yb-ph">{IC[a.category] || '✦'}</span>}</span>
-                    <span className="sb-body">
-                      <small className="yb-cat">{IC[a.category] || '✦'} {a.category} · {a.date}</small>
-                      <b className="yb-t">{a.title}</b>
-                      <span className="qv-line">{tell(a, k)}</span>
-                    </span>
-                    <span className="qv-xpgain" aria-hidden="true">+{XP_PER} XP</span>
-                    {a.featured && <span className="sb-stamp" aria-hidden="true">Huyền thoại</span>}
-                    <span className="qv-roll" aria-hidden="true" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-        );
-      })}
-      {shown.length > 0 && (
-        <footer className="sb-end qv-end">
-          <span className="sb-cap" aria-hidden="true">🗺️</span>
-          <b>Hành trình tiếp tục…</b>
-          <p>Bản đồ vẫn còn những vùng đất chưa đặt chân tới. Hẹn gặp ở chương sau!</p>
-        </footer>
+      {issues.length > 0 && (
+        <nav className="mg-issues" aria-label="Chọn số báo">
+          <button className="mg-arrow" onClick={() => go(at - 1)} aria-label="Số mới hơn">‹</button>
+          {issues.map((s, k) => <button key={s.y} className={k === at ? 'on' : ''} onClick={() => go(k)}>Số {s.y || '—'}</button>)}
+          <button className="mg-arrow" onClick={() => go(at + 1)} aria-label="Số cũ hơn">›</button>
+        </nav>
       )}
-      {shown.length === 0 && <p className="hw-empty">Chưa có thành tích nào ở mục này.</p>}
+
+      {issue && (
+        <div className="mg-desk" onTouchStart={(e) => { touch.current = e.touches[0].clientX; }} onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - (touch.current ?? 0); if (Math.abs(dx) > 70) go(at + (dx < 0 ? 1 : -1)); }}>
+          <article className="mg-page" key={tab + issue.y}>
+            <span className="mg-hot" aria-hidden="true">TIN<br />NÓNG<br />🔥</span>
+            <header className="mg-head">
+              <p className="mg-top"><span>Phát hành mỗi khi có tin vui</span><span>Năm {issue.y}</span></p>
+              <h2 className="mg-mast" aria-label={mast}>{[...mast].map((c, k) => <span key={k} className="ch">{c === ' ' ? ' ' : c}</span>)}</h2>
+              <span className="mg-rule" />
+              <p className="mg-bar">
+                <span>Số {issue.no} · {issue.list.length} tin</span>
+                <span>Thái Nguyên</span>
+                <span>Chuyên trang thành tích {span} của Vũ Đình Đạt</span>
+                <span>Giá: 1 nụ cười</span>
+              </p>
+              <span className="mg-rule thin" />
+            </header>
+
+            <div className="mg-grid">
+              <button className={`mg-lead ${CAT[lead.category] || ''}`} onClick={(e) => openA(e, lead)} aria-label={`Đọc tin: ${lead.title}`}>
+                <small className="mg-kicker">{KICKER[lead.category] || 'Tin chính'} · {lead.date}</small>
+                <h3>{headline(lead, issue.y)}</h3>
+                <Fig a={lead} big stamp />
+                <span className="mg-cap">Ảnh: {lead.title} ({lead.date}). Bấm để xem bản gốc.</span>
+                <span className="mg-col"><p className="mg-drop">{story(lead, issue.y)}</p></span>
+              </button>
+
+              <aside className="mg-side">
+                <section className="mg-box">
+                  <h4>📊 Bảng tin</h4>
+                  <ul>
+                    <li><span>Tin trong số này</span><b>{issue.list.length}</b></li>
+                    <li><span>Tổng số thành tích</span><b>{items.length}</b></li>
+                    <li><span>Năm có học bổng KKHT</span><b>{new Set(items.filter((a) => SCHOL.test(`${a.title} ${a.desc || ''}`)).map((a) => a.date)).size}</b></li>
+                    {gpa && <li><span>GPA tích luỹ</span><b>{gpa}</b></li>}
+                    <li><span>Thành tích tiêu biểu</span><b>{items.filter((a) => a.featured).length}</b></li>
+                  </ul>
+                </section>
+                <section className="mg-box ads">
+                  <h4>📌 Mục rao vặt</h4>
+                  <ul>{ADS.map(([t, s]) => <li key={t}><b>{t}:</b> {s}</li>)}</ul>
+                </section>
+              </aside>
+            </div>
+
+            {rest.length > 0 && (
+              <div className="mg-more">
+                <h4 className="mg-sec">Tin khác trong số {issue.y}</h4>
+                <div className="mg-stories">
+                  {rest.map((a) => (
+                    <button key={a.id || a.n} className={`mg-story ${CAT[a.category] || ''} ${a.featured ? 'star' : ''}`} onClick={(e) => openA(e, a)} aria-label={`Đọc tin: ${a.title}`}>
+                      <small className="mg-kicker">{KICKER[a.category] || 'Tin vắn'} · {a.date}</small>
+                      <h4>{a.title}</h4>
+                      <Fig a={a} stamp />
+                      <span className="mg-col"><p>{story(a, issue.y)}</p></span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <footer className="mg-foot"><span>Tạp chí Thành tích · Số {issue.no}</span><span>{at + 1} / {issues.length} số báo · vuốt hoặc bấm ‹ › để giở trang</span></footer>
+          </article>
+        </div>
+      )}
+      {issues.length === 0 && <p className="hw-empty">Chưa có thành tích nào ở mục này.</p>}
     </div>
   );
 }
@@ -384,7 +339,7 @@ export default function Museum() {
   const open = (n, el) => { const r = el.getBoundingClientRect(); setView({ n, from: { left: r.left, top: r.top, width: r.width, height: r.height } }); };
   return (
     <div className="mz">
-      <AdventureBook items={items} onOpen={open} />
+      <Magazine items={items} onOpen={open} />
       {view && items.length > 0 && <Detail items={items} at={Math.min(view.n, items.length - 1)} from={view.from} onClose={() => setView(null)} />}
       {ed.canEdit && <ListEditor ed={ed} label="thành tích" fields={ACH_FIELDS} blank={ACH_BLANK} preview={ACH_PREVIEW} />}
     </div>

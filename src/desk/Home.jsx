@@ -222,7 +222,7 @@ function HomeView({ onNav, onLightbox, data }) {
       gsap.from(q('.exam-all'), { y: 20, opacity: 0, duration: 0.5, scrollTrigger: onEnter('.exam-all', 'top 95%') });
 
       /* ====== 6. THẺ MỤC LỤC: xoè ra như bộ bài ====== */
-      gsap.from(q('.deck .rc'), { y: 120, rotate: (i) => (i - 2.5) * 10, opacity: 0, stagger: 0.07, duration: 0.9, ease: 'back.out(1.3)', clearProps: 'transform', scrollTrigger: onEnter('.deck', 'top 85%') });
+      gsap.from(q('.deck .rc'), { y: 120, rotate: (i) => (i - (ROUTES.length - 2) / 2) * 10, opacity: 0, stagger: 0.07, duration: 0.9, ease: 'back.out(1.3)', clearProps: 'transform', scrollTrigger: onEnter('.deck', 'top 85%') });
       gsap.fromTo(q('.more .doo-big path'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.4, ease: 'power1.inOut', scrollTrigger: onEnter('.more', 'top 80%') });
 
       /* tiêu đề mục: trượt lên khi tới */
@@ -258,7 +258,7 @@ function HomeView({ onNav, onLightbox, data }) {
       <section className="hero">
         <div className="desk-surface" />
         <div className="desk-item note-a" data-depth="1.4"><div className="sticky yellow">TODO:{(about.todo || []).map((t, i) => <span key={i}><br />{t}</span>)}</div></div>
-        <div className="desk-item note-b" data-depth="1.1"><div className="sticky pink">Nhấn phím<br /><b>1 → 7</b><br />để mở từng trang ✍</div></div>
+        <div className="desk-item note-b" data-depth="1.1"><div className="sticky pink">Nhấn phím<br /><b>1 → {ROUTES.length}</b><br />để mở từng trang ✍</div></div>
         <div className="desk-item pencil" data-depth="0.8"><i /></div>
         <div className="desk-item ruler" data-depth="0.6">{Array.from({ length: 30 }, (_, i) => <span key={i} className={i % 5 ? '' : 'big'} />)}</div>
         <div className="desk-item mug" data-depth="1.2"><span className="steam" /><span className="steam s2" /></div>
@@ -418,7 +418,7 @@ function HomeView({ onNav, onLightbox, data }) {
         <p className="more-sub">Mỗi tấm thẻ là một trang riêng. Bấm để mở, hoặc nhấn phím số trên bàn phím.</p>
         <div className="deck">
           {ROUTES.slice(1).map((r, i) => (
-            <button key={r.id} className="rc" style={{ '--c': r.color, '--i': i - 2.5, '--y': `${Math.abs(i - 2.5) * 14}px` }} onClick={() => onNav(r.id)} onMouseEnter={() => thock(1.3 + i * 0.08)}>
+            <button key={r.id} className="rc" style={{ '--c': r.color, '--i': i - (ROUTES.length - 2) / 2, '--y': `${Math.abs(i - (ROUTES.length - 2) / 2) * 14}px` }} onClick={() => onNav(r.id)} onMouseEnter={() => thock(1.3 + i * 0.08)}>
               <span className="rc-tab"><kbd>{i + 2}</kbd>{r.label}</span>
               <span className="rc-ic">{r.icon}</span>
               <b>{r.label}</b>

@@ -13,11 +13,13 @@ import { DiaryBoard } from '../Diary';
 import { thock } from '../sound';
 
 const GocVui = lazy(() => import('./GocVui'));
+const TravelPage = lazy(() => import('./Travel'));
 
 const TAPES = {
   'du-an': ['React Native', 'Flutter', 'ESP32', 'Node.js', 'C# .NET', 'MQTT', 'Firebase', 'Arduino'],
   'thanh-tich': ['Sinh viên 5 tốt', 'GPA 3.83', 'Giấy khen', 'Học bổng', 'B1 Cambridge', 'Nghiên cứu khoa học'],
   'nhat-ky': ['Hôm nay', 'Một tấm ảnh', 'Vài dòng', 'Kỷ niệm', 'Dây phơi', 'Thả tim'],
+  'du-lich': ['Hà Giang', 'Hà Nội', 'Thái Nguyên', 'Đà Nẵng', 'Hội An', 'Phú Quốc', 'Hoàng Sa', 'Trường Sa'],
   cv: ['Kinh nghiệm', 'Học vấn', 'Kỹ năng', 'Chứng chỉ', 'In ngay'],
   'lien-he': ['Hợp tác', 'Tuyển dụng', 'Hỏi bài', 'Cà phê', 'Viết thư'],
   'goc-vui': ['Drone', 'LED 8 bit', 'Săn bug', 'Morse', 'WPM', 'Pomodoro', 'coffee'],
@@ -49,6 +51,7 @@ export default function SubPage({ id, onNav, onNight }) {
         {id === 'du-an' && <ProjectsPage />}
         {id === 'thanh-tich' && <AchievementsPage />}
         {id === 'nhat-ky' && <DiaryBoard />}
+        {id === 'du-lich' && <Suspense fallback={<p className="pg-wait">Đang mở bản đồ…</p>}><TravelPage /></Suspense>}
         {id === 'cv' && <CvPage />}
         {id === 'lien-he' && <ContactPage />}
         {id === 'goc-vui' && <Suspense fallback={<p className="pg-wait">Đang tải Góc vui…</p>}><GocVui onNav={onNav} onNight={onNight} /></Suspense>}

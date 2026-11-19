@@ -1,0 +1,29 @@
+[
+  {
+    "id": "seed-ba-vi",
+    "province": "ha-noi",
+    "image": "/uploads/san-may-ba-vi-mw38hhbv.jpg",
+    "title": "Săn mây Ba Vì",
+    "date": "04/11/2026",
+    "place": "Vườn quốc gia Ba Vì",
+    "desc": "Ảnh mẫu lấy từ nhật ký, có thể sửa hoặc xoá trong chế độ quản trị."
+  },
+  {
+    "id": "seed-nam-dinh",
+    "province": "nam-dinh",
+    "image": "/uploads/1-ngay-hoi-thao-tai-nam-dinh-mumzlp6f.jpg",
+    "title": "Một ngày hội thảo tại Nam Định",
+    "date": "",
+    "place": "Nam Định",
+    "desc": "Ảnh mẫu lấy từ nhật ký, có thể sửa hoặc xoá trong chế độ quản trị."
+  },
+  {
+    "id": "seed-thai-nguyen",
+    "province": "thai-nguyen",
+    "image": "/uploads/ki-niem-le-tot-nghiep-he-cu-nhan-mumvmnf2.jpg",
+    "title": "Kỉ niệm lễ tốt nghiệp",
+    "date": "",
+    "place": "Đại học Thái Nguyên",
+    "desc": "Ảnh mẫu lấy từ nhật ký, có thể sửa hoặc xoá trong chế độ quản trị."
+  }
+]
