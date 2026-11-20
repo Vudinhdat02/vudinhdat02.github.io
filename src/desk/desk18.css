@@ -227,3 +227,22 @@
   .tv8.m-world .tv-mapbox { aspect-ratio: auto !important; height: 360px; }
   .tv8 .tv-zoom button { width: 32px; height: 32px; font-size: 0.95rem; }
 }
+
+/* Liên hệ: phần trò chơi (Góc vui cũ) ở cuối trang */
+.lh-games { margin-top: 80px; padding-top: 40px; border-top: 3px dashed rgba(31, 47, 110, 0.2); }
+.lh-games-h { font: 400 clamp(2rem, 4.4vw, 3rem) var(--hand); color: var(--ink); text-align: center; }
+@media (max-width: 759px) { .lh-games { margin-top: 56px; padding-top: 28px; } }
+
+/* bản đồ Việt Nam: nước láng giềng, biển, nhãn (vòng 9) */
+.tv8 .tv-map .nb-fill { fill: #ece5d2; stroke: #ece5d2; stroke-width: 3; vector-effect: non-scaling-stroke; stroke-linejoin: round; pointer-events: none; }
+.tv8 .tv-map .nb { fill: #ece5d2; stroke: #c4b690; stroke-width: 0.8; vector-effect: non-scaling-stroke; stroke-linejoin: round; pointer-events: none; }
+.tv8 .tv-map .nb-name { font-family: var(--body); font-weight: 600; letter-spacing: 0.08em; fill: #9c8d68; pointer-events: none; text-transform: uppercase; }
+.tv8 .tv-map .sea-name { font-family: var(--old); font-style: italic; letter-spacing: 0.18em; fill: rgba(42, 80, 140, 0.55); pointer-events: none; }
+.tv8 .tv-map .tv-arch-name { font-family: var(--body); font-weight: 700; fill: #c8321f; paint-order: stroke; stroke: #eaf4ff; stroke-width: 3px; pointer-events: none; }
+.tv8 .tv-map .tv-isl-name { font-family: var(--body); font-weight: 600; fill: #1f2f6e; paint-order: stroke; stroke: #eaf4ff; stroke-width: 3px; pointer-events: none; }
+.tv8 .tv-map .pv { stroke-width: 0.9; }
+/* chú thích đi theo con trỏ: ảnh nhỏ + tên */
+.tv-ctip { position: fixed; z-index: 9500; display: flex; flex-direction: column; align-items: center; gap: 2px; max-width: 210px; padding: 8px 10px 7px; border-radius: 12px; background: #fff; border: 2px solid var(--ink); box-shadow: 0 6px 18px rgba(31, 47, 110, 0.22); pointer-events: none; text-align: center; }
+.tv-ctip img { display: block; max-width: 186px; max-height: 124px; width: auto; height: auto; object-fit: contain; border-radius: 6px; margin-bottom: 4px; background: #eef3fb; }
+.tv-ctip b { font: 400 1.2rem/1.1 var(--hand); color: var(--ink); }
+.tv-ctip small { font: 0.85rem var(--hand); color: var(--ink-soft); }

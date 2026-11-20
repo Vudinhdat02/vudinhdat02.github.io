@@ -10,7 +10,7 @@ import projects from '../../data/projects.json';
 import achievements from '../../data/achievements.json';
 import skills from '../../data/skills.json';
 import { profile } from '../../data/profile';
-import { thock, chime, rain, pop } from '../sound';
+import { thock, chime, rain, pop, keyTap } from '../sound';
 import { vi } from '../Diary';
 
 const store = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* bỏ qua */ } } };
@@ -194,7 +194,7 @@ export function Focus() {
   useEffect(() => () => rain(false), []);
   useEffect(() => {
     if (!keys) return undefined;
-    let t; const tick = () => { thock(0.8 + Math.random() * 0.6); t = setTimeout(tick, 80 + Math.random() * (Math.random() < 0.1 ? 900 : 180)); };
+    let t; const tick = () => { keyTap(0.8 + Math.random() * 0.6); t = setTimeout(tick, 80 + Math.random() * (Math.random() < 0.1 ? 900 : 180)); };
     tick(); return () => clearTimeout(t);
   }, [keys]);
   const total = mode === 'hoc' ? 25 * 60 : 5 * 60;

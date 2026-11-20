@@ -29,6 +29,7 @@ export function DroneGame() {
     game.current = g;
     const size = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
+      if (!wrap.current) return;
       W = wrap.current.clientWidth; H = Math.round(Math.min(320, Math.max(230, W * 0.5)));
       canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.height = H + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

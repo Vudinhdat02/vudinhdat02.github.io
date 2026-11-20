@@ -10,7 +10,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { thock } from './sound';
 import { GUEST_VIEW, IS_ADMIN, setGuestView } from '../admin/adminApi';
 
-export default function TopBar({ sections, active, onGo, onBrand, onSearch, night, onNight, mute, onMute, canWrite, onWrite, onAdmin }) {
+export default function TopBar({ sections, active, onGo, onBrand, mute, onMute, canWrite, onWrite, onAdmin }) {
   const bar = useRef(null);
   const hl = useRef(null);
   const [open, setOpen] = useState(false);
@@ -60,7 +60,7 @@ export default function TopBar({ sections, active, onGo, onBrand, onSearch, nigh
               <circle cx="38.6" cy="36.4" r="1.3" fill="#fff" opacity=".7" />
             </svg>
           </span>
-          <span className="tb-name">Vũ Đình Đạt<small>dathoaqua · R&D IoT</small></span>
+          <span className="tb-name">Vũ Đình Đạt</span>
         </button>
 
         <nav className="tb-nav" aria-label="Mục lục">
@@ -73,10 +73,6 @@ export default function TopBar({ sections, active, onGo, onBrand, onSearch, nigh
         </nav>
 
         <div className="tb-tools">
-          <button className="tb-tool tb-search" onClick={onSearch} title="Tìm nhanh (Ctrl+K)"><span>⌕</span><kbd>Ctrl K</kbd></button>
-          <button className={`tb-tool lamp ${night ? 'off' : ''}`} onClick={onNight} title={night ? 'Bật đèn' : 'Tắt đèn (chế độ tối)'} aria-pressed={night}>
-            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 28h14M11 28l4-11 6-6" /><path className="shade" d="M17 6l9 9-3 2-8-8z" /><circle cx="15" cy="17" r="1.6" /></svg>
-          </button>
           <TextSize />
           {IS_ADMIN && <GuestEye />}
           {canWrite && <button className="tb-write" onClick={onWrite}>✍ Viết nhật ký</button>}

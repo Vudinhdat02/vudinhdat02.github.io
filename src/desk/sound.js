@@ -61,7 +61,7 @@ function tone(c, type, f0, f1, dur, gain, t) {
 let lastTap = 0;
 
 /** Chạm nhẹ: đầu bút chì gõ lên giấy. */
-export function thock(pitch = 1) {
+function tapImpl(pitch = 1) {
   const c = ac(); if (!c) return;
   const t = c.currentTime;
   if (t - lastTap < 0.07) return;
@@ -72,7 +72,7 @@ export function thock(pitch = 1) {
 }
 
 /** Đóng dấu / gập sách: tiếng bịch êm. */
-export function thud() {
+function thudImpl() {
   const c = ac(); if (!c) return;
   const t = c.currentTime;
   noise(c, 0.09, 380, 0.7, 0.18, t, 'lowpass');
@@ -80,14 +80,14 @@ export function thud() {
 }
 
 /** Bút chì viết sột soạt (thay tiếng máy in). */
-export function buzz() {
+function buzzImpl() {
   const c = ac(); if (!c) return;
   const t = c.currentTime;
   for (let i = 0; i < 3; i++) noise(c, 0.05, 2400 + Math.random() * 600, 1.2, 0.08, t + i * 0.045, 'bandpass');
 }
 
 /** Lật trang giấy. */
-export function whoosh() {
+function whooshImpl() {
   const c = ac(); if (!c) return;
   const t = c.currentTime;
   noise(c, 0.32, 500, 0.6, 0.18, t, 'bandpass', 2200);
@@ -95,14 +95,14 @@ export function whoosh() {
 }
 
 /** Mở nắp bút / bật nút: tiếng "póc" nhỏ. */
-export function pop() {
+function popImpl() {
   const c = ac(); if (!c) return;
   const t = c.currentTime;
   tone(c, 'sine', 380, 720, 0.09, 0.07, t);
 }
 
 /** Chụp / kẹp giấy. */
-export function shutter() {
+function shutterImpl() {
   const c = ac(); if (!c) return;
   const t = c.currentTime;
   noise(c, 0.03, 2200, 1, 0.12, t);
@@ -110,7 +110,7 @@ export function shutter() {
 }
 
 /** Chuông gỗ nhỏ (kiểu đàn gõ đồ chơi). */
-export function chime(up = true) {
+function chimeImpl(up = true) {
   const c = ac(); if (!c) return;
   const t = c.currentTime;
   (up ? [523, 659, 784] : [659, 523]).forEach((f, i) => { tone(c, 'sine', f, f, 0.6, 0.05, t + i * 0.11); tone(c, 'sine', f * 2, f * 2, 0.25, 0.012, t + i * 0.11); });
@@ -135,3 +135,11 @@ export function rain(on) {
     rainNode = { src, g };
   } catch { /* trình duyệt không hỗ trợ */ }
 }
+
+/* Tiếng động khi rê chuột / bấm vào menu, nút, thẻ… đã TẮT theo ý chủ trang (không còn tiếng "cạch cạch").
+   Các hàm vẫn giữ tên để chỗ gọi không phải sửa, nhưng không phát gì. */
+const quiet = () => {};
+export const thock = quiet, thud = quiet, buzz = quiet, whoosh = quiet, pop = quiet, shutter = quiet, chime = quiet;
+void thudImpl; void buzzImpl; void whooshImpl; void popImpl; void shutterImpl; void chimeImpl;
+/** Tiếng gõ phím nền cho "Giờ tự học" (người dùng tự bật, không phải tiếng khi rê chuột). */
+export const keyTap = (pitch) => tapImpl(pitch);

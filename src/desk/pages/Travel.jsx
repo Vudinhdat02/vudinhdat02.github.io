@@ -226,6 +226,34 @@ function Panel({ prov, photos, note, canEdit, onClose, onView, onSavePhoto, onDe
   );
 }
 
+/* chú thích nổi ngay trên mũi chuột (gắn vào body để không bị khung bản đồ cắt), luôn nằm trong màn hình */
+function CursorTip({ x, y, name, img, count, country }) {
+  const ref = useRef(null);
+  const [box, setBox] = useState({ w: 160, h: img ? 150 : 52 });
+  useLayoutEffect(() => { const r = ref.current?.getBoundingClientRect(); if (r && (Math.abs(r.width - box.w) > 1 || Math.abs(r.height - box.h) > 1)) setBox({ w: r.width, h: r.height }); });
+  const vw = window.innerWidth, gap = 14;
+  const left = Math.min(vw - box.w - 8, Math.max(8, x - box.w / 2));
+  const above = y - box.h - gap >= 8;
+  const top = above ? y - box.h - gap : y + gap + 10;
+  return createPortal(
+    <div ref={ref} className={`tv-ctip ${img ? 'has-img' : ''}`} style={{ left, top }} aria-hidden="true">
+      {img && <img src={asset(img)} alt="" />}
+      <b>{name}</b>
+      <small>{count ? `${count} ảnh · bấm để xem` : country ? 'bấm để xem bản đồ chi tiết' : 'chưa có ảnh'}</small>
+    </div>,
+    document.body,
+  );
+}
+
+/* nhãn tên nước láng giềng và biển trên bản đồ Việt Nam (toạ độ theo bản đồ vnmap.json) */
+const VP = (lon, lat) => { const o = MAP.origin; return [(lon - o.lon0) * o.k * o.cos + o.dx, (o.lat1 - lat) * o.k + o.dy]; };
+const NB_LABEL = { CHN: VP(106.2, 23.25), LAO: VP(103.6, 18.9), KHM: VP(104.9, 12.6), THA: VP(102.9, 14.6) };
+const SEA_LABELS = [
+  { n: 'Biển Đông', xy: VP(111.3, 13.6), f: 22 },
+  { n: 'Vịnh Bắc Bộ', xy: VP(107.4, 19.9), f: 13 },
+  { n: 'Vịnh Thái Lan', xy: VP(102.9, 10.4), f: 13 },
+];
+
 /* mã nơi chốn trong travel.json:
  *   "<mã tỉnh VN>"          vd "ha-noi"
  *   "qg:<ISO3>"             cả một nước, vd "qg:JPN"
@@ -306,24 +334,26 @@ export default function TravelPage() {
   const tipText = hover ? (hover.kind === 'country' ? countryName(hover.id) : hover.kind === 'region' ? nameOf(hover.id) : nameOf(hover.id)) : '';
   const tipCount = hover ? (hover.kind === 'country' ? countIso[hover.id] || 0 : byPlace[hover.id]?.length || 0) : 0;
 
+  /* chú thích đi theo con trỏ: ngay trên mũi chuột, có ảnh nhỏ đầu tiên của nơi đó (đúng tỉ lệ, không cắt) */
+  const track = (e, id, kind) => { if (e.pointerType === 'touch') return; setHover({ id, kind, x: e.clientX, y: e.clientY }); };
+  const thumbOf = (h) => { if (!h) return null; const list = h.kind === 'country' ? ed.items.filter((p) => isoOf(p.province) === h.id) : byPlace[h.id] || []; return list[0]?.image || null; };
+
   let svgBody = null, side = null, loading = '';
   if (mode === 'vn') {
     svgBody = (
       <>
-        {MAP.archipelagos.map((a) => (
-          <g key={a.name} className="tv-arch">
-            <circle cx={a.xy[0]} cy={a.xy[1]} r={a.r} />
-            {a.dots.map(([x, y], k) => <circle key={k} className="dot" cx={x} cy={y} r="3.2" />)}
-            <text x={a.xy[0]} y={a.xy[1] + a.r + 18} textAnchor="middle">{a.name}</text>
-          </g>
-        ))}
+        {(MAP.neighbors || []).map((c) => <path key={'f' + c.id} d={c.d} className="nb-fill" />)}
+        {(MAP.neighbors || []).map((c) => <path key={c.id} d={c.d} className="nb" />)}
+        {(MAP.neighbors || []).filter((c) => NB_LABEL[c.id]).map((c) => <text key={c.id} className="nb-name" x={NB_LABEL[c.id][0]} y={NB_LABEL[c.id][1]} fontSize={13 * Math.max(0.4, zoom.s)} textAnchor="middle">{c.name}</text>)}
+        {SEA_LABELS.map((x) => <text key={x.n} className="sea-name" x={x.xy[0]} y={x.xy[1]} fontSize={x.f * Math.max(0.4, zoom.s)} textAnchor="middle">{x.n}</text>)}
         {MAP.provinces.map((p) => {
           const n = byPlace[p.id]?.length || 0;
           return <path key={p.id} d={p.d} className={`rg pv l${level(n)} ${sel === p.id ? 'on' : ''} ${hover?.id === p.id ? 'hov' : ''}`}
-            onPointerEnter={() => setHover({ id: p.id, kind: 'prov' })} onPointerLeave={() => setHover(null)} onClick={() => pick(p.id)}
+            onPointerMove={(e) => track(e, p.id, 'prov')} onPointerLeave={() => setHover(null)} onClick={() => pick(p.id)}
             tabIndex={0} role="button" aria-label={`${p.name}${n ? `, ${n} ảnh` : ''}`} onKeyDown={(e) => e.key === 'Enter' && setSel(p.id)} />;
         })}
-        {MAP.islands.map((x) => <g key={x.name} className="tv-isl"><circle cx={x.xy[0]} cy={x.xy[1]} r="2.6" /><text x={x.xy[0] + 6} y={x.xy[1] + 4}>{x.name}</text></g>)}
+        {MAP.archipelagos.map((a) => <text key={a.name} className="tv-arch-name" x={a.xy[0]} y={a.xy[1] + a.r * 0.55 + 12} fontSize={12 * Math.max(0.4, zoom.s)} textAnchor="middle">{a.name}</text>)}
+        {MAP.islands.map((x) => <text key={x.name} className="tv-isl-name" x={x.xy[0] + 6} y={x.xy[1] + 4} fontSize={10.5 * Math.max(0.45, zoom.s)}>{x.name}</text>)}
         {visitedProv.map((p) => <text key={p.id} className="tv-pin" x={p.cx} y={p.cy} fontSize={20 * Math.max(0.35, zoom.s)} textAnchor="middle">📍</text>)}
       </>
     );
@@ -347,7 +377,7 @@ export default function TravelPage() {
           {W.countries.map((c) => {
             const n = countIso[c.id] || 0;
             return <path key={c.id} d={c.d} className={`rg ct l${level(n)} ${c.id === 'VNM' ? 'vn' : ''} ${hover?.id === c.id ? 'hov' : ''}`}
-              onPointerEnter={() => setHover({ id: c.id, kind: 'country' })} onPointerLeave={() => setHover(null)} onClick={() => openCountry(c.id)} />;
+              onPointerMove={(e) => track(e, c.id, 'country')} onPointerLeave={() => setHover(null)} onClick={() => openCountry(c.id)} />;
           })}
           {W.archipelagos.map((a) => (
             <g key={a.name} className="tv-arch w">
@@ -384,7 +414,7 @@ export default function TravelPage() {
           {L.regions.map((r) => {
             const key = `qg:${iso}:${r.id}`, n = byPlace[key]?.length || 0;
             return <path key={r.id} d={r.d} className={`rg pv l${level(n)} ${sel === key ? 'on' : ''} ${hover?.id === key ? 'hov' : ''}`}
-              onPointerEnter={() => setHover({ id: key, kind: 'region' })} onPointerLeave={() => setHover(null)} onClick={() => pick(key)}
+              onPointerMove={(e) => track(e, key, 'region')} onPointerLeave={() => setHover(null)} onClick={() => pick(key)}
               tabIndex={0} role="button" aria-label={`${r.name}${n ? `, ${n} ảnh` : ''}`} onKeyDown={(e) => e.key === 'Enter' && setSel(key)} />;
           })}
           {visitedR.map((r) => <text key={r.id} className="tv-pin" x={r.cx} y={r.cy} fontSize={20 * Math.max(0.35, zoom.s) * (L.w / 1000)} textAnchor="middle">📍</text>)}
@@ -441,11 +471,11 @@ export default function TravelPage() {
             <button onClick={zoom.zoomOut} aria-label="Thu nhỏ">－</button>
             <button onClick={zoom.reset} aria-label="Xem toàn bộ">⤢</button>
           </div>
-          {hover && <div className="tv-tip" aria-hidden="true"><b>{tipText}</b><small>{tipCount ? `${tipCount} ảnh · bấm để xem` : hover.kind === 'country' ? 'bấm để xem bản đồ chi tiết' : 'chưa có ảnh'}</small></div>}
         </div>
         <aside className="tv-side">{side || <p className="tv-empty">…</p>}</aside>
       </div>
 
+      {hover && hover.x != null && <CursorTip x={hover.x} y={hover.y} name={tipText} img={thumbOf(hover)} count={tipCount} country={hover.kind === 'country'} />}
       {place && (
         <Panel prov={place} photos={photos} note={(notes.doc || {})[place.id]} canEdit={ed.canEdit}
           onClose={() => setSel(null)} onView={(k) => setView(k)} onSavePhoto={savePhoto} onDelete={del} onSaveNote={saveNote} />

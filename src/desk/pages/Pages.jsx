@@ -21,11 +21,10 @@ const TAPES = {
   'nhat-ky': ['Hôm nay', 'Một tấm ảnh', 'Vài dòng', 'Kỷ niệm', 'Dây phơi', 'Thả tim'],
   'du-lich': ['Hà Giang', 'Hà Nội', 'Thái Nguyên', 'Đà Nẵng', 'Hội An', 'Phú Quốc', 'Hoàng Sa', 'Trường Sa'],
   cv: ['Kinh nghiệm', 'Học vấn', 'Kỹ năng', 'Chứng chỉ', 'In ngay'],
-  'lien-he': ['Hợp tác', 'Tuyển dụng', 'Hỏi bài', 'Cà phê', 'Viết thư'],
-  'goc-vui': ['Drone', 'LED 8 bit', 'Săn bug', 'Morse', 'WPM', 'Pomodoro', 'coffee'],
+  'lien-he': ['Hợp tác', 'Tuyển dụng', 'Hỏi bài', 'Cà phê', 'Viết thư', 'Thi gõ phím', 'Drone', 'Morse'],
 };
 
-export default function SubPage({ id, onNav, onNight }) {
+export default function SubPage({ id, onNav }) {
   const i = routeIndex(id);
   const r = ROUTES[i];
   const next = ROUTES[i + 1] || ROUTES[1];
@@ -53,8 +52,13 @@ export default function SubPage({ id, onNav, onNight }) {
         {id === 'nhat-ky' && <DiaryBoard />}
         {id === 'du-lich' && <Suspense fallback={<p className="pg-wait">Đang mở bản đồ…</p>}><TravelPage /></Suspense>}
         {id === 'cv' && <CvPage />}
-        {id === 'lien-he' && <ContactPage />}
-        {id === 'goc-vui' && <Suspense fallback={<p className="pg-wait">Đang tải Góc vui…</p>}><GocVui onNav={onNav} onNight={onNight} /></Suspense>}
+        {id === 'lien-he' && <>
+          <ContactPage />
+          <section className="lh-games" id="tro-choi">
+            <h2 className="lh-games-h">Nghỉ tay một chút 🎲</h2>
+            <Suspense fallback={<p className="pg-wait">Đang tải trò chơi…</p>}><GocVui /></Suspense>
+          </section>
+        </>}
       </section>
       <div className="pg-next-wrap">
         <Torn color="#f4f7fc" seed={i + 2} />

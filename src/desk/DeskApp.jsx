@@ -1,6 +1,6 @@
 /*
  * "BÀN HỌC CỦA KỸ SƯ" — phong cách trường học + bàn phím cơ, nền giấy trắng.
- * Thanh menu trên cùng: Trang chủ + các trang riêng (#du-an, #thanh-tich, #nhat-ky, #cv, #lien-he, #goc-vui).
+ * Thanh menu trên cùng: Trang chủ + các trang riêng (#du-an, #thanh-tich, #nhat-ky, #du-lich, #cv, #lien-he; #goc-vui cũ → #lien-he).
  * Đổi trang: vào thẳng trang mới, trang cũ mờ đi còn trang mới trượt lên, thanh màu chạy trên đỉnh màn hình.
  */
 import { useEffect, useRef, useState } from 'react';
@@ -8,18 +8,14 @@ import { createPortal } from 'react-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { profile } from '../data/profile';
-import projectsData from '../data/projects.json';
-import { asset } from '../utils/asset';
 import { thock, whoosh, setMuted } from './sound';
 import { DiaryProvider, CAN_WRITE, useDiary } from './Diary';
 import TopBar from './TopBar';
-import Home, { HOME_SECTIONS, ACH } from './Home';
+import Home from './Home';
 import SubPage from './pages/Pages';
-import Palette from './Palette';
-import { Lightbox, NightLamp, SignIn } from './Extras';
+import { Lightbox, SignIn } from './Extras';
 import { InkCursor, InkSplash, Magnets, confetti, reduced } from './Fx';
-import { ROUTES, routeIndex, isRoute } from './routes';
+import { ROUTES, routeIndex, isRoute, ALIAS } from './routes';
 import { GH_MODE } from '../admin/adminApi';
 import './desk.css';
 import './desk2.css';
@@ -42,7 +38,7 @@ import './desk18.css';
 
 gsap.registerPlugin(ScrollTrigger);
 const vi = (v) => (typeof v === 'object' && v ? v.vi || v.en : v);
-const hashRoute = () => { const h = window.location.hash.slice(1); return isRoute(h) ? h : ''; };
+const hashRoute = () => { const h0 = window.location.hash.slice(1), h = ALIAS[h0] || h0; return isRoute(h) ? h : ''; };
 
 export default function DeskApp() {
   const lenisRef = useRef(null);
@@ -54,8 +50,6 @@ function Desk({ lenisRef }) {
   const [route, setRoute] = useState(hashRoute);
   const routeRef = useRef(route);
   const [mute, setMute] = useState(false);
-  const [night, setNight] = useState(() => { try { return localStorage.getItem('desk.night') === '1'; } catch { return false; } });
-  const [palette, setPalette] = useState(false);
   const [lightbox, setLightbox] = useState(null); // { item, from }
   const [admin, setAdmin] = useState(() => window.location.hash === '#admin');
   const anyModal = () => !!document.querySelector('.pl-wrap, .bk-wrap, .cp-wrap, .lb-wrap, .ql-wrap, .mv-wrap, .ed-wrap');
@@ -103,12 +97,7 @@ function Desk({ lenisRef }) {
     return () => { window.removeEventListener('popstate', onPop); window.removeEventListener('hashchange', onPop); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggleNight = () => setNight((n) => {
-    const v = !n; thock(v ? 0.6 : 1.4);
-    try { localStorage.setItem('desk.night', v ? '1' : '0'); } catch { /* bị chặn thì thôi */ }
-    return v;
-  });
-  useEffect(() => { if (palette || lightbox || admin) lenisRef.current?.stop(); else if (!anyModal()) lenisRef.current?.start(); }, [palette, lightbox, admin]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (lightbox || admin) lenisRef.current?.stop(); else if (!anyModal()) lenisRef.current?.start(); }, [lightbox, admin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goSection = (sid) => {
     const go = () => { const el = document.getElementById(sid); if (!el) return; thock(1.1); lenisRef.current ? lenisRef.current.scrollTo(el, { duration: 1.6 }) : el.scrollIntoView({ behavior: 'smooth' }); };
@@ -150,11 +139,8 @@ function Desk({ lenisRef }) {
       return document.querySelectorAll(`.kc[data-k="${CSS.escape(k)}"]`);
     };
     const down = (e) => {
-      if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setPalette((v) => !v); thock(); return; }
       if (e.target.closest?.('input,textarea') || anyModal()) return;
-      if (e.key === '/') { e.preventDefault(); setPalette(true); thock(); return; }
       if (e.key === 'h' || e.key === 'H') { navigate(''); return; }
-      if (e.key === 'l' || e.key === 'L') { toggleNight(); return; }
       const els = find(e);
       if (els?.length) { els.forEach((el) => el.classList.add('down')); if (!e.repeat) thock(); }
       const n = parseInt(e.key, 10);
@@ -174,20 +160,17 @@ function Desk({ lenisRef }) {
     <div className={`desk-app route-${route || 'home'}`}>
       <TopBar sections={ROUTES} active={active} onGo={(i) => navigate(ROUTES[i]?.id ?? '')}
         onBrand={(e) => { confetti(e.clientX, e.clientY); navigate(''); }}
-        onSearch={() => { setPalette(true); thock(); }}
-        night={night} onNight={toggleNight} mute={mute} onMute={() => { setMute(!mute); setMuted(!mute); }}
+        mute={mute} onMute={() => { setMute(!mute); setMuted(!mute); }}
         canWrite={CAN_WRITE} onWrite={diaryApi.openNew} onAdmin={() => setAdmin(true)} />
 
       {route === ''
         ? <Home key="home" onNav={navigate} onLightbox={setLightbox} />
-        : <SubPage key={route} id={route} onNav={navigate} onNight={toggleNight} />}
+        : <SubPage key={route} id={route} onNav={navigate} />}
 
       {/* lớp nổi gắn thẳng vào body, để không vướng các đoạn bị ghim khi cuộn */}
       {createPortal(<>
-        {palette && <Palette items={paletteItems()} onClose={() => setPalette(false)} />}
         {lightbox && <Lightbox item={lightbox.item} from={lightbox.from} onClose={() => setLightbox(null)} />}
         {admin && (!CAN_WRITE || GH_MODE) && <SignIn onClose={() => { setAdmin(false); history.replaceState(null, '', route ? '#' + route : ' '); }} />}
-        <NightLamp on={night} />
         <div className="page-bar" ref={curtain} aria-hidden="true" />
         <InkCursor />
         <InkSplash />
@@ -195,18 +178,4 @@ function Desk({ lenisRef }) {
       </>, document.body)}
     </div>
   );
-
-  function paletteItems() {
-    return [
-      ...ROUTES.map((pg, i) => ({ key: 'r' + pg.id, group: 'Mở trang', icon: pg.icon, label: pg.label, hint: `phím ${i + 1}`, run: () => navigate(pg.id) })),
-      ...HOME_SECTIONS.map((s) => ({ key: s.id, group: 'Trang chủ', icon: '↓', label: s.label, hint: 'cuộn tới mục', run: () => goSection(s.id) })),
-      ...(CAN_WRITE ? [{ key: 'write', group: 'Việc nhanh', icon: '✍', label: 'Viết nhật ký mới', run: diaryApi.openNew }] : []),
-      { key: 'night', group: 'Việc nhanh', icon: '💡', label: night ? 'Bật đèn' : 'Tắt đèn (chế độ tối)', run: toggleNight },
-      { key: 'cvpdf', group: 'Việc nhanh', icon: '📄', label: 'Mở CV (PDF)', run: () => window.open(asset('/cv.pdf'), '_blank') },
-      { key: 'mail', group: 'Việc nhanh', icon: '✉', label: 'Gửi thư cho Đạt', hint: profile.email, run: () => navigate('lien-he') },
-      ...projectsData.map((p) => ({ key: 'p' + p.id, group: 'Dự án', icon: '📝', label: p.title, hint: `${p.category} · ${p.tags.slice(0, 3).join(', ')}`, run: () => navigate('du-an') })),
-      ...diaryApi.posts.map((p) => ({ key: 'b' + p.id, group: 'Nhật ký', icon: '📸', label: vi(p.title), hint: vi(p.date), run: () => diaryApi.openPost(p.id) })),
-      ...ACH.map((a) => ({ key: 'a' + a.id, group: 'Thành tích', icon: '🏅', label: a.title, hint: a.date, run: () => a.image && setLightbox({ item: { src: a.image, title: a.title, sub: a.date }, from: null }) })),
-    ];
-  }
 }

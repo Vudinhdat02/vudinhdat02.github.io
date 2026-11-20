@@ -152,16 +152,7 @@
 .cvx-toast { position: fixed; left: 50%; bottom: 26px; translate: -50% 0; z-index: 9000; max-width: calc(100vw - 32px); padding: 10px 18px; border-radius: 999px; background: var(--ink); color: #fff; font: 500 0.95rem var(--body); box-shadow: 0 10px 24px rgba(31, 47, 110, 0.3); animation: cvtoast 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
 @keyframes cvtoast { from { opacity: 0; translate: -50% 20px; } }
 
-@media print {
-  @page { margin: 12mm; }
-  body * { visibility: hidden !important; }
-  .cv-paper, .cv-paper * { visibility: visible !important; }
-  .cv-paper { position: absolute !important; left: 0; top: 0; width: 100%; box-shadow: none !important; padding: 0 !important; background: #fff !important; clip-path: none !important; }
-  .cv-paper .holes, .cvx-corner, .cv-btn, .cv-pdf-up, .cvx-edit { display: none !important; }
-  .cvx-sec { opacity: 1 !important; translate: none !important; break-inside: avoid; }
-  .cvx-stamp { opacity: 0.85 !important; scale: 1 !important; }
-  .page-bar, .ink-cursor, .night-veil { display: none !important; }
-}
+/* (đã bỏ chức năng in CV) */
 
 /* =================================================================
  *  GÓC VUI — hộp đồ chơi

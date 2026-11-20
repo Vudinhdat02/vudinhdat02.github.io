@@ -128,8 +128,6 @@ export function CvPage() {
             {ed.items.map((x, k) => <button key={x.id || x.name} className={active === k ? 'on' : ''} onClick={() => goSec(k)}><i>{String(k + 1).padStart(2, '0')}</i>{x.name}</button>)}
           </nav>
           <div className="cvx-acts">
-            <button onClick={() => { thock(1.1); window.print(); }} title="In tờ CV (chỉ in phần giấy)">🖨<span>In CV</span></button>
-            <a href={pdfUrl} download="CV-Vu-Dinh-Dat.pdf" onClick={() => thock(1.1)} title="Tải file PDF">⬇<span>Tải PDF</span></a>
             {d.email && <button onClick={() => copy(d.email, 'Đã chép email: ' + d.email)} title="Sao chép email">✉<span>Chép email</span></button>}
             <button onClick={share} title="Chia sẻ CV">🔗<span>Chia sẻ</span></button>
           </div>
