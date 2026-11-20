@@ -36,7 +36,8 @@ function useZoom(svgRef, W, H, maxZoom = 8) {
   const clamp = (v) => {
     const { W: w0, H: h0 } = dims.current;
     const w = Math.min(w0, Math.max(w0 / maxZoom, v.w)), h = (w / w0) * h0;
-    return { w, h, x: Math.min(w0 - w * 0.3, Math.max(-w * 0.7, v.x)), y: Math.min(h0 - h * 0.3, Math.max(-h * 0.7, v.y)) };
+    if (w >= w0 - 0.5) return { w: w0, h: h0, x: 0, y: 0 };
+    return { w, h, x: Math.min(w0 - w, Math.max(0, v.x)), y: Math.min(h0 - h, Math.max(0, v.y)) };
   };
   const tw = useRef(null);
   const animate = (to) => {
@@ -45,7 +46,14 @@ function useZoom(svgRef, W, H, maxZoom = 8) {
     const o = { ...vb };
     tw.current = gsap.to(o, { ...t, duration: 0.7, ease: 'power3.inOut', onUpdate: () => setVb({ ...o }) });
   };
-  const zoomAt = (k) => animate({ w: vb.w / k, h: vb.h / k, x: vb.x + vb.w / 2 - vb.w / k / 2, y: vb.y + vb.h / 2 - vb.h / k / 2 });
+  // phóng to / thu nhỏ quanh tâm đang xem; thu nhỏ hết cỡ thì về đúng khung mặc định (không bị lệch)
+  const zoomAt = (k) => {
+    const { W: w0, H: h0 } = dims.current;
+    const w = Math.min(w0, Math.max(w0 / maxZoom, vb.w / k)), h = (w / w0) * h0;
+    if (w >= w0 - 0.5) { animate({ x: 0, y: 0, w: w0, h: h0 }); return; }
+    const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
+    animate({ w, h, x: cx - w / 2, y: cy - h / 2 });
+  };
   useEffect(() => {
     const el = svgRef.current; if (!el) return undefined;
     const pts = new Map(); let start = null;
@@ -245,9 +253,36 @@ function CursorTip({ x, y, name, img, count, country }) {
   );
 }
 
+/* màu đất liền các nước láng giềng: tông phấn tươi, hợp bảng màu của web, khác hẳn màu kem của các tỉnh Việt Nam */
+const NB_COLORS = { CHN: '#fde2cf', LAO: '#d5f0e0', KHM: '#e7e0f8', THA: '#fdf0c2', MMR: '#d9eef7', PHL: '#fde2cf', MYS: '#e7e0f8', IDN: '#d5f0e0', BRN: '#fdf0c2', TWN: '#d5f0e0', IND: '#e7e0f8' };
+const nbColor = (id) => NB_COLORS[id] || '#eef0d8';
+
+/* biển sống động: thuyền buồm, hải âu, lấp lánh trên mặt nước (chỉ là hình trang trí, không bấm được) */
+function SeaLife({ s }) {
+  const route = (pts) => 'M' + pts.map(([lon, lat]) => VP(lon, lat).map((v) => v.toFixed(1)).join(' ')).join(' L');
+  const boats = [
+    { d: route([[109.6, 14.8], [111.2, 13.2], [112.6, 12.4], [111.0, 11.2], [109.6, 12.2], [109.6, 14.8]]), dur: '70s', ch: '⛵' },
+    { d: route([[107.3, 20.2], [108.2, 19.3], [107.6, 18.4], [106.9, 19.4], [107.3, 20.2]]), dur: '48s', ch: '🚤' },
+    { d: route([[104.0, 9.4], [103.2, 10.6], [102.6, 9.8], [103.4, 8.9], [104.0, 9.4]]), dur: '60s', ch: '⛵' },
+  ];
+  const gulls = [route([[108.9, 16.6], [110.4, 16.0], [111.6, 14.6]]), route([[106.6, 8.7], [108.0, 9.8], [109.5, 10.9]])];
+  const sparks = [[110.6, 15.1], [112.8, 13.7], [108.9, 11.6], [110.0, 9.4], [113.6, 11.8], [107.9, 18.7], [103.6, 9.9], [114.5, 15.6]].map(([lon, lat]) => VP(lon, lat));
+  return (
+    <g className="sea-life" aria-hidden="true">
+      {sparks.map(([x, y], k) => <circle key={k} className="spark" cx={x} cy={y} r={2.8 * s} style={{ animationDelay: `${k * 0.7}s` }} />)}
+      {boats.map((b, k) => (
+        <g key={k}><text className="boat" fontSize={24 * s} textAnchor="middle" dy={8 * s}>{b.ch}</text><animateMotion dur={b.dur} repeatCount="indefinite" path={b.d} /></g>
+      ))}
+      {gulls.map((d, k) => (
+        <g key={'g' + k}><path className="gull" d={`M${-10 * s} 0 Q ${-5 * s} ${-6 * s} 0 0 Q ${5 * s} ${-6 * s} ${10 * s} 0`} /><animateMotion dur={`${26 + k * 9}s`} repeatCount="indefinite" path={d} begin={`${k * 4}s`} /></g>
+      ))}
+    </g>
+  );
+}
+
 /* nhãn tên nước láng giềng và biển trên bản đồ Việt Nam (toạ độ theo bản đồ vnmap.json) */
 const VP = (lon, lat) => { const o = MAP.origin; return [(lon - o.lon0) * o.k * o.cos + o.dx, (o.lat1 - lat) * o.k + o.dy]; };
-const NB_LABEL = { CHN: VP(106.2, 23.25), LAO: VP(103.6, 18.9), KHM: VP(104.9, 12.6), THA: VP(102.9, 14.6) };
+const NB_LABEL = { CHN: VP(109.6, 22.9), LAO: VP(102.75, 19.85), KHM: VP(104.6, 12.9), THA: VP(102.75, 15.4) };
 const SEA_LABELS = [
   { n: 'Biển Đông', xy: VP(111.3, 13.6), f: 22 },
   { n: 'Vịnh Bắc Bộ', xy: VP(107.4, 19.9), f: 13 },
@@ -342,8 +377,9 @@ export default function TravelPage() {
   if (mode === 'vn') {
     svgBody = (
       <>
-        {(MAP.neighbors || []).map((c) => <path key={'f' + c.id} d={c.d} className="nb-fill" />)}
-        {(MAP.neighbors || []).map((c) => <path key={c.id} d={c.d} className="nb" />)}
+        {(MAP.neighbors || []).map((c) => <path key={'f' + c.id} d={c.d} className="nb-fill" style={{ fill: nbColor(c.id), stroke: nbColor(c.id) }} />)}
+        {(MAP.neighbors || []).map((c) => <path key={c.id} d={c.d} className="nb" style={{ fill: nbColor(c.id) }} />)}
+        {!reduced() && <SeaLife s={Math.max(0.4, zoom.s)} />}
         {(MAP.neighbors || []).filter((c) => NB_LABEL[c.id]).map((c) => <text key={c.id} className="nb-name" x={NB_LABEL[c.id][0]} y={NB_LABEL[c.id][1]} fontSize={13 * Math.max(0.4, zoom.s)} textAnchor="middle">{c.name}</text>)}
         {SEA_LABELS.map((x) => <text key={x.n} className="sea-name" x={x.xy[0]} y={x.xy[1]} fontSize={x.f * Math.max(0.4, zoom.s)} textAnchor="middle">{x.n}</text>)}
         {MAP.provinces.map((p) => {
@@ -461,8 +497,16 @@ export default function TravelPage() {
           {(
             <svg ref={svgRef} className="tv-map" viewBox={vbStr} style={{ touchAction: zoom.zoomed ? 'none' : 'pan-y' }} role="img"
               aria-label={mode === 'vn' ? 'Bản đồ Việt Nam 63 tỉnh thành, có quần đảo Hoàng Sa và Trường Sa' : mode === 'world' ? 'Bản đồ thế giới' : `Bản đồ ${countryName(iso)}`}>
-              <defs><pattern id="tv-sea" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M0 9 Q 4.5 5 9 9 T 18 9" fill="none" stroke="rgba(80,130,200,0.18)" strokeWidth="1.2" /></pattern></defs>
+              <defs>
+                <linearGradient id="tv-deep" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#eef7ff" /><stop offset="1" stopColor="#d6ebfb" /></linearGradient>
+                <pattern id="tv-sea" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M0 9 Q 4.5 5 9 9 T 18 9" fill="none" stroke="rgba(80,130,200,0.2)" strokeWidth="1.2" />
+                  {!reduced() && <animateTransform attributeName="patternTransform" type="translate" from="0 0" to="18 0" dur="7s" repeatCount="indefinite" />}</pattern>
+                <pattern id="tv-sea2" width="46" height="30" patternUnits="userSpaceOnUse"><path d="M0 22 Q 11.5 16 23 22 T 46 22" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="1.4" />
+                  {!reduced() && <animateTransform attributeName="patternTransform" type="translate" from="0 0" to="-46 4" dur="11s" repeatCount="indefinite" />}</pattern>
+              </defs>
+              <rect x={-dims[0]} y={-dims[1]} width={dims[0] * 3} height={dims[1] * 3} fill="url(#tv-deep)" />
               <rect x={-dims[0]} y={-dims[1]} width={dims[0] * 3} height={dims[1] * 3} fill="url(#tv-sea)" />
+              <rect className="tv-sea2" x={-dims[0]} y={-dims[1]} width={dims[0] * 3} height={dims[1] * 3} fill="url(#tv-sea2)" />
               {svgBody}
             </svg>
           )}

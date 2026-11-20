@@ -17,6 +17,8 @@ export const ACH_FIELDS = [
   { key: 'category', label: 'Loại (mỗi loại là một phòng)', type: 'text', options: ['Học tập', 'Hoạt động', 'Cuộc thi'] },
   { key: 'featured', label: 'Tiêu biểu (đeo huy chương trên tường, hiện ở mục Hành trình trang chủ)', type: 'check' },
   { key: 'desc', label: 'Mô tả ngắn', type: 'area' },
+  { key: 'headline', label: 'Tít trên Tạp chí (để trống thì tự viết)', type: 'text' },
+  { key: 'story', label: 'Bài viết trên Tạp chí (để trống thì tự viết)', type: 'area' },
   { key: 'image', label: 'Ảnh giấy khen / huy chương', type: 'image' },
   { key: 'frame', label: 'Kiểu khung treo trên tường', type: 'frame' },
 ];

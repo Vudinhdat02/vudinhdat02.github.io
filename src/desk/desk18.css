@@ -1,5 +1,5 @@
 /* =================================================================
- *  VÒNG 6: "Tạp chí Thành tích" (trang báo cổ) + trang "Du lịch" (bản đồ Việt Nam) — nạp sau desk17.css
+ *  VÒNG 6: "Tạp chí Đạt Hoa Quả" (trang báo cổ) + trang "Du lịch" (bản đồ Việt Nam) — nạp sau desk17.css
  * ================================================================= */
 :root { --news: #f3ecd9; --news-ink: #2a241a; --news-soft: #6b5d45; --goth: 'Grenze Gotisch', 'Playfair Display', Georgia, serif; --old: 'Old Standard TT', 'Playfair Display', Georgia, serif; }
 
@@ -273,3 +273,37 @@
 .page-lien-he .lh-games { margin-top: 44px; padding-top: 26px; }
 .page-lien-he .lh-games-h { margin-bottom: 4px; }
 @media (max-width: 759px) { .page-lien-he .lh-games { margin-top: 34px; padding-top: 20px; } }
+
+/* vòng 11: biển sống động, nước láng giềng màu phấn, ảnh trong ngăn tỉnh hiện trọn */
+.tv8 .tv-map .nb-fill, .tv8 .tv-map .nb { transition: fill 0.4s; }
+.tv8 .tv-map .nb { stroke: rgba(31, 47, 110, 0.35); }
+.tv8 .tv-map .nb-name { fill: #8a7aa8; }
+.tv8 .tv-sea2 { opacity: 0.55; pointer-events: none; }
+.sea-life { pointer-events: none; }
+.sea-life .spark { fill: #fff; animation: tv-twinkle 3.6s ease-in-out infinite; }
+@keyframes tv-twinkle { 0%, 100% { opacity: 0; } 45%, 55% { opacity: 0.95; } }
+.sea-life .boat { filter: drop-shadow(0 2px 1px rgba(31, 47, 110, 0.25)); }
+.sea-life .gull { fill: none; stroke: #4a5a96; stroke-width: 1.4; stroke-linecap: round; vector-effect: non-scaling-stroke; animation: tv-flap 0.7s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes tv-flap { from { transform: scaleY(1); } to { transform: scaleY(0.45); } }
+.tv8 .tv-map .pv { transition: fill 0.3s, opacity 0.3s; }
+.tv8 .tv-map .pv.hov { fill: #ffe14d; }
+.tv8 .tv-map .pv:active { opacity: 0.8; }
+/* ngăn ảnh của tỉnh: khung dùng flex để ảnh dọc / ngang co đúng khung, không bị cắt */
+.tv-pic { display: flex; align-items: center; justify-content: center; }
+.tv-pic img { flex: none; min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.tv-grid { align-items: start; }
+@media (prefers-reduced-motion: reduce) { .sea-life { display: none; } }
+
+/* Tạp chí Đạt Hoa Quả: dùng đúng font chung của web (Playfair Display cho đầu báo / tít, Be Vietnam Pro cho bài) */
+:root { --goth: 'Playfair Display', Georgia, serif; --old: 'Be Vietnam Pro', system-ui, sans-serif; }
+.mg-mast { font-weight: 700; font-style: italic; letter-spacing: -0.01em; }
+.mg-lead h3, .mg-story h4 { font-family: 'Playfair Display', Georgia, serif; font-weight: 700; }
+.mg-top, .mg-cap, .mg-foot { font-style: italic; }
+.mg-col p { font-size: 0.98rem; line-height: 1.65; }
+.mg-hot { font-size: 0.82rem; padding: 8px; line-height: 1.15; }
+.mg-edit { display: inline-flex; margin-top: 8px; padding: 8px 16px; border-radius: 999px; background: var(--ink); color: #fff; font: 600 0.9rem var(--body); box-shadow: 0 3px 0 #101a44; }
+.mg-mast { font-size: clamp(2.2rem, 6vw, 5rem); padding: 0 70px; }
+@media (max-width: 759px) { .mg-mast { font-size: 8.4vw; padding: 0; } }
+.tv-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
+.tv-pic { height: 190px; }
+@media (max-width: 759px) { .tv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tv-pic { height: 140px; } }

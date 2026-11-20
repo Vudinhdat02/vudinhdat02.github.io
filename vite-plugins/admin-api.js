@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DATA_FILES = new Set(['about', 'achievements', 'skills', 'intro', 'blog', 'projects', 'stats', 'cvsections', 'cvinfo', 'travel', 'travelnotes']);
+const DATA_FILES = new Set(['about', 'achievements', 'skills', 'intro', 'blog', 'projects', 'stats', 'cvsections', 'cvinfo', 'travel', 'travelnotes', 'magazine']);
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 const MAX_BYTES = 25 * 1024 * 1024;
 

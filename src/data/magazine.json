@@ -1,0 +1,14 @@
+{
+  "name": "Tạp chí Đạt Hoa Quả",
+  "tagline": "Phát hành mỗi khi có tin vui",
+  "place": "Thái Nguyên",
+  "subtitle": "Chuyên trang thành tích {span} của Vũ Đình Đạt",
+  "price": "Giá: 1 nụ cười",
+  "hot": "TIN NÓNG 🔥",
+  "reporter": "PV Tạp chí Đạt Hoa Quả",
+  "boardTitle": "📊 Bảng tin",
+  "adsTitle": "📌 Mục rao vặt",
+  "ads": "CẦN TÌM: Đồng đội làm dự án IoT, mê ESP32 và cà phê đen. Liên hệ: mục Liên hệ trên trang này.\nCHO THUÊ: Một chiếc bàn phím cơ kêu lách cách, bao vui, không bao yên tĩnh.\nTẶNG: 1 nụ cười cho bất kỳ ai đọc hết số báo này.\nTUYỂN: Nhà tuyển dụng muốn có một kỹ sư chăm chỉ — xem ngay mục CV.",
+  "more": "Tin khác trong số {year}",
+  "foot": "vuốt hoặc bấm ‹ › để giở trang"
+}

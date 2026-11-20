@@ -1,5 +1,7 @@
 /*
- * Trang "Thành tích": "Tạp chí Thành tích" — mỗi năm một số báo, trang nhất kiểu báo cổ (Magazine).
+ * Trang "Thành tích": "Tạp chí Đạt Hoa Quả" — mỗi năm một số báo, trang nhất kiểu báo cổ (Magazine).
+ * Chữ trên báo sửa được ở chế độ quản trị: src/data/magazine.json (tên báo, dòng phụ, rao vặt…),
+ * còn tít / bài của từng tin sửa trong danh sách thành tích (ô "Tít trên Tạp chí", "Bài viết trên Tạp chí").
  * Trang này không phát âm thanh.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -10,7 +12,8 @@ import data from '../../data/achievements.json';
 import statsData from '../../data/stats.json';
 import { asset } from '../../utils/asset';
 import { reduced } from '../Fx';
-import { ListEditor, useEditable } from '../Editor';
+import { DocEditor, ListEditor, useEditable, useEditableDoc } from '../Editor';
+import magData from '../../data/magazine.json';
 import { useDiary } from '../Diary';
 import { ACH_BLANK, ACH_FIELDS, ACH_PREVIEW, FRAMES, frameOf } from '../fields';
 
@@ -56,7 +59,7 @@ const Medal = () => (
   </span>
 );
 
-/* ---------- "Tạp chí Thành tích": mỗi năm là một số báo (trang nhất kiểu báo cổ) ----------
+/* ---------- "Tạp chí Đạt Hoa Quả": mỗi năm là một số báo (trang nhất kiểu báo cổ) ----------
  *  Đầu báo chữ gô-tích, dải thông tin số báo, tin chính (thành tích tiêu biểu / mới nhất của năm) với ảnh lớn,
  *  các cột tin phụ, hộp "Bảng tin" (số liệu), hộp "Mục rao vặt" vui, nhãn tròn "TIN NÓNG".
  *  Chuyển giữa các số báo bằng nút, phím ← → hoặc vuốt: trang báo lật như giở báo.
@@ -64,22 +67,35 @@ const Medal = () => (
  *  Bấm vào một tin để mở giấy khen. Trang này không phát âm thanh. */
 const CAT = { 'Học tập': 'c-hoc', 'Hoạt động': 'c-hd', 'Cuộc thi': 'c-thi' };
 const KICKER = { 'Học tập': 'Giáo dục', 'Hoạt động': 'Đời sống – Xã hội', 'Cuộc thi': 'Thể thao trí tuệ' };
-const ADS = [
-  ['CẦN TÌM', 'Đồng đội làm dự án IoT, mê ESP32 và cà phê đen. Liên hệ: mục Liên hệ trên trang này.'],
-  ['CHO THUÊ', 'Một chiếc bàn phím cơ kêu lách cách, bao vui, không bao yên tĩnh.'],
-  ['TẶNG', '1 nụ cười cho bất kỳ ai đọc hết số báo này.'],
-  ['TUYỂN', 'Nhà tuyển dụng muốn có một kỹ sư chăm chỉ — xem ngay mục CV.'],
+const MAG_FIELDS = [
+  { key: 'name', label: 'Tên tờ báo', type: 'text', required: true },
+  { key: 'tagline', label: 'Dòng nhỏ trên đầu báo', type: 'text' },
+  { key: 'place', label: 'Nơi phát hành', type: 'text' },
+  { key: 'subtitle', label: 'Dòng giới thiệu ({span} = khoảng năm, vd 2021 – 2026)', type: 'text' },
+  { key: 'price', label: 'Giá báo', type: 'text' },
+  { key: 'hot', label: 'Nhãn tròn đỏ (vd: TIN NÓNG 🔥)', type: 'text' },
+  { key: 'reporter', label: 'Tên phóng viên ở đầu mỗi bài', type: 'text' },
+  { key: 'boardTitle', label: 'Tiêu đề hộp số liệu', type: 'text' },
+  { key: 'adsTitle', label: 'Tiêu đề hộp rao vặt', type: 'text' },
+  { key: 'ads', label: 'Rao vặt: mỗi dòng một tin, dạng "TIÊU ĐỀ: nội dung"', type: 'area' },
+  { key: 'more', label: 'Tiêu đề phần tin khác ({year} = năm)', type: 'text' },
+  { key: 'foot', label: 'Dòng nhỏ cuối báo', type: 'text' },
 ];
 const SCHOL = /học\s*b[ổọo]ng|KKHT/i;
 const leadOf = (list) => [...list].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || String(b.date).localeCompare(String(a.date)))[0];
-const headline = (a, y) => (a.featured ? `${a.title}: dấu son của năm ${y}` : `${a.title} — thêm một cột mốc năm ${y}`);
-const story = (a, y) => {
+const headline = (a, y) => (a.headline?.trim() ? a.headline : a.featured ? `${a.title}: dấu son của năm ${y}` : `${a.title} — thêm một cột mốc năm ${y}`);
+const story = (a, y, rep = 'PV Tạp chí Đạt Hoa Quả') => {
+  if (a.story?.trim()) return a.story;
   const d = a.desc && !/^https?:\/\//.test(a.desc) ? a.desc.replace(/\s*https?:\/\/\S+/g, '').trim() : '';
-  const base = `PV Tạp chí Thành tích — Năm ${y}, Vũ Đình Đạt ghi tên mình vào danh sách “${a.title}”${a.category ? ` ở mảng ${a.category.toLowerCase()}` : ''}.`;
+  const base = `${rep} — Năm ${y}, Vũ Đình Đạt ghi tên mình vào danh sách “${a.title}”${a.category ? ` ở mảng ${a.category.toLowerCase()}` : ''}.`;
   return d ? `${base} ${d.endsWith('.') ? d : d + '.'}` : `${base} Một bước tiến nhỏ trên hành trình dài, nhưng là niềm vui lớn của cả “toà soạn”.`;
 };
 function Magazine({ items, onOpen }) {
   const root = useRef(null);
+  const mag = useEditableDoc(magData, 'magazine');
+  const [editMag, setEditMag] = useState(false);
+  const M = { ...magData, ...(mag.doc || {}) };
+  const ads = String(M.ads || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => { const i = l.indexOf(':'); return i > 0 ? [l.slice(0, i).trim(), l.slice(i + 1).trim()] : ['', l]; });
   const [tab, setTab] = useState('all');
   const cats = [...new Set(items.map((a) => a.category).filter(Boolean))];
   const shown = tab === 'all' ? items : tab === 'gold' ? items.filter((a) => a.featured) : items.filter((a) => a.category === tab);
@@ -146,16 +162,12 @@ function Magazine({ items, onOpen }) {
   );
   const lead = issue ? leadOf(issue.list) : null;
   const rest = issue ? issue.list.filter((a) => a !== lead) : [];
-  const mast = 'Tạp chí Thành tích';
+  const mast = M.name || 'Tạp chí Đạt Hoa Quả';
+  const fill = (t, y) => String(t || '').replace('{span}', span).replace('{year}', y);
   return (
     <div className="mg" ref={root}>
-      <div className="yb-sum" role="tablist" aria-label="Lọc thành tích">
-        <button role="tab" aria-selected={tab === 'all'} className={`yb-chip all ${tab === 'all' ? 'on' : ''}`} onClick={() => pick('all')}><b>{items.length}</b><span>Tất cả</span></button>
-        {cats.map((c) => (
-          <button key={c} role="tab" aria-selected={tab === c} className={`yb-chip ${CAT[c] || ''} ${tab === c ? 'on' : ''}`} onClick={() => pick(c)}><i aria-hidden="true">{IC[c] || '✦'}</i><b>{count(c)}</b><span>{c}</span></button>
-        ))}
-        <button role="tab" aria-selected={tab === 'gold'} className={`yb-chip gold ${tab === 'gold' ? 'on' : ''}`} onClick={() => pick('gold')}><i aria-hidden="true">⭐</i><b>{items.filter((a) => a.featured).length}</b><span>Tiêu biểu</span></button>
-      </div>
+      {mag.canEdit && <button className="mg-edit" onClick={() => setEditMag(true)}>✎ Sửa chữ trên báo</button>}
+      {editMag && <DocEditor ed={mag} title="Sửa nội dung Tạp chí" fields={MAG_FIELDS} onClose={() => setEditMag(false)} />}
 
       {issues.length > 0 && (
         <nav className="mg-issues" aria-label="Chọn số báo">
@@ -168,16 +180,16 @@ function Magazine({ items, onOpen }) {
       {issue && (
         <div className="mg-desk" onTouchStart={(e) => { touch.current = e.touches[0].clientX; }} onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - (touch.current ?? 0); if (Math.abs(dx) > 70) go(at + (dx < 0 ? 1 : -1)); }}>
           <article className="mg-page" key={tab + issue.y}>
-            <span className="mg-hot" aria-hidden="true">TIN<br />NÓNG<br />🔥</span>
+            <span className="mg-hot" aria-hidden="true">{M.hot}</span>
             <header className="mg-head">
-              <p className="mg-top"><span>Phát hành mỗi khi có tin vui</span><span>Năm {issue.y}</span></p>
+              <p className="mg-top"><span>{M.tagline}</span><span>Năm {issue.y}</span></p>
               <h2 className="mg-mast" aria-label={mast}>{[...mast].map((c, k) => <span key={k} className="ch">{c === ' ' ? ' ' : c}</span>)}</h2>
               <span className="mg-rule" />
               <p className="mg-bar">
                 <span>Số {issue.no} · {issue.list.length} tin</span>
-                <span>Thái Nguyên</span>
-                <span>Chuyên trang thành tích {span} của Vũ Đình Đạt</span>
-                <span>Giá: 1 nụ cười</span>
+                {M.place && <span>{M.place}</span>}
+                {M.subtitle && <span>{fill(M.subtitle, issue.y)}</span>}
+                {M.price && <span>{M.price}</span>}
               </p>
               <span className="mg-rule thin" />
             </header>
@@ -188,12 +200,12 @@ function Magazine({ items, onOpen }) {
                 <h3>{headline(lead, issue.y)}</h3>
                 <Fig a={lead} big stamp />
                 <span className="mg-cap">Ảnh: {lead.title} ({lead.date}). Bấm để xem bản gốc.</span>
-                <span className="mg-col"><p className="mg-drop">{story(lead, issue.y)}</p></span>
+                <span className="mg-col"><p className="mg-drop">{story(lead, issue.y, M.reporter)}</p></span>
               </button>
 
               <aside className="mg-side">
                 <section className="mg-box">
-                  <h4>📊 Bảng tin</h4>
+                  <h4>{M.boardTitle}</h4>
                   <ul>
                     <li><span>Tin trong số này</span><b>{issue.list.length}</b></li>
                     <li><span>Tổng số thành tích</span><b>{items.length}</b></li>
@@ -203,28 +215,28 @@ function Magazine({ items, onOpen }) {
                   </ul>
                 </section>
                 <section className="mg-box ads">
-                  <h4>📌 Mục rao vặt</h4>
-                  <ul>{ADS.map(([t, s]) => <li key={t}><b>{t}:</b> {s}</li>)}</ul>
+                  <h4>{M.adsTitle}</h4>
+                  <ul>{ads.map(([t, x], k) => <li key={k}>{t && <b>{t}:</b>} {x}</li>)}</ul>
                 </section>
               </aside>
             </div>
 
             {rest.length > 0 && (
               <div className="mg-more">
-                <h4 className="mg-sec">Tin khác trong số {issue.y}</h4>
+                <h4 className="mg-sec">{fill(M.more, issue.y)}</h4>
                 <div className="mg-stories">
                   {rest.map((a) => (
                     <button key={a.id || a.n} className={`mg-story ${CAT[a.category] || ''} ${a.featured ? 'star' : ''}`} onClick={(e) => openA(e, a)} aria-label={`Đọc tin: ${a.title}`}>
                       <small className="mg-kicker">{KICKER[a.category] || 'Tin vắn'} · {a.date}</small>
                       <h4>{a.title}</h4>
                       <Fig a={a} stamp />
-                      <span className="mg-col"><p>{story(a, issue.y)}</p></span>
+                      <span className="mg-col"><p>{story(a, issue.y, M.reporter)}</p></span>
                     </button>
                   ))}
                 </div>
               </div>
             )}
-            <footer className="mg-foot"><span>Tạp chí Thành tích · Số {issue.no}</span><span>{at + 1} / {issues.length} số báo · vuốt hoặc bấm ‹ › để giở trang</span></footer>
+            <footer className="mg-foot"><span>{mast} · Số {issue.no}</span><span>{at + 1} / {issues.length} số báo{M.foot ? " · " + M.foot : ""}</span></footer>
           </article>
         </div>
       )}
