@@ -12,6 +12,7 @@ import { thock, whoosh, setMuted } from './sound';
 import { DiaryProvider, CAN_WRITE, useDiary } from './Diary';
 import TopBar from './TopBar';
 import Home from './Home';
+import { Guard } from './Guard';
 import SubPage from './pages/Pages';
 import { Lightbox, SignIn } from './Extras';
 import { InkCursor, InkSplash, Magnets, confetti, reduced } from './Fx';
@@ -165,7 +166,7 @@ function Desk({ lenisRef }) {
 
       {route === ''
         ? <Home key="home" onNav={navigate} onLightbox={setLightbox} />
-        : <SubPage key={route} id={route} onNav={navigate} />}
+        : <Guard key={route} inline><SubPage id={route} onNav={navigate} /></Guard>}
 
       {/* lớp nổi gắn thẳng vào body, để không vướng các đoạn bị ghim khi cuộn */}
       {createPortal(<>

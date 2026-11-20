@@ -1,5 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import DeskApp from './DeskApp.jsx';
+import { Guard, installReloadGuard } from './Guard.jsx';
 
-ReactDOM.createRoot(document.getElementById('root')).render(<DeskApp />);
+/* chống trang trắng sau khi cập nhật web: xem Guard.jsx */
+installReloadGuard();
+ReactDOM.createRoot(document.getElementById('root')).render(<Guard><DeskApp /></Guard>);
