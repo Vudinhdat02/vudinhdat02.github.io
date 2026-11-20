@@ -246,3 +246,30 @@
 .tv-ctip img { display: block; max-width: 186px; max-height: 124px; width: auto; height: auto; object-fit: contain; border-radius: 6px; margin-bottom: 4px; background: #eef3fb; }
 .tv-ctip b { font: 400 1.2rem/1.1 var(--hand); color: var(--ink); }
 .tv-ctip small { font: 0.85rem var(--hand); color: var(--ink-soft); }
+
+/* =================================================================
+ *  LIÊN HỆ: thư bên trái, 7 tem bên phải (hàng 1: 4 tem, hàng 2: 3 tem căn giữa), tem đều kích thước (vòng 10)
+ * ================================================================= */
+.page-lien-he .ctwin { display: flex; flex-direction: column; align-items: center; gap: 34px; }
+.page-lien-he .letter { margin: 0; width: min(560px, 100%); max-width: none; }
+.page-lien-he .stamps { --sw: 132px; --sg: 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sg); width: calc(var(--sw) * 4 + var(--sg) * 3); max-width: 100%; margin: 0; padding: 0; overflow: visible; scroll-snap-type: none; }
+.page-lien-he .postage { flex: 0 0 var(--sw); min-width: 0; }
+.page-lien-he .postage-in { width: 100%; height: 150px; justify-content: center; padding: 12px 8px 10px; gap: 4px; }
+.page-lien-he .postage-in b { font-size: 1.05rem; line-height: 1.15; text-align: center; }
+.page-lien-he .postage-in small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%; font-size: 0.7rem; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+@media (min-width: 1000px) {
+  .page-lien-he .ctwin { flex-direction: row; align-items: center; justify-content: center; gap: 44px; }
+  .page-lien-he .letter { flex: 0 1 540px; }
+}
+@media (max-width: 759px) {
+  .page-lien-he .ctwin { gap: 26px; }
+  .page-lien-he .stamps { --sg: 8px; --sw: calc((100% - var(--sg) * 3) / 4); width: 100%; }
+  .page-lien-he .postage-in { height: 96px; padding: 8px 3px 6px; border-width: 3px; gap: 3px; }
+  .page-lien-he .postage-in b { font-size: 0.82rem; }
+  .page-lien-he .postage-in small { display: none; }
+  .page-lien-he .pg-ic { width: 36px; height: 36px; }
+}
+/* phần trò chơi nằm sát ngay dưới phần liên hệ */
+.page-lien-he .lh-games { margin-top: 44px; padding-top: 26px; }
+.page-lien-he .lh-games-h { margin-bottom: 4px; }
+@media (max-width: 759px) { .page-lien-he .lh-games { margin-top: 34px; padding-top: 20px; } }
