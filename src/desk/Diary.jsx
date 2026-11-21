@@ -20,7 +20,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import blogData from '../data/blog.json';
 import { EDIT_MODE, newId, removeUpload, uploadImage, useEditableList } from '../admin/adminApi';
 import { asset } from '../utils/asset';
-import { looksLikeImage, toWebImage } from '../utils/image';
+import { IMAGE_ACCEPT, looksLikeImage, toWebImage } from '../utils/image';
 import { thock, whoosh, thud, pop, shutter } from './sound';
 
 gsap.registerPlugin(Flip, ScrollTrigger);
@@ -650,7 +650,7 @@ function Composer({ form: init, onClose, onSave }) {
             </figure>
           ))}
           <label className={`cp-add ${reading ? 'busy' : ''}`}>
-            <input type="file" accept="image/*,.heic,.heif" multiple onChange={(e) => { addFiles([...e.target.files]); e.target.value = ''; }} hidden />
+            <input type="file" accept={IMAGE_ACCEPT} multiple onChange={(e) => { addFiles([...e.target.files]); e.target.value = ''; }} hidden />
             {reading ? <><b className="cp-spin">◌</b><span>Đang mở ảnh…</span></> : <><b>＋</b><span>Thêm ảnh<br /><small>hoặc kéo thả, dán (Ctrl+V)</small></span></>}
           </label>
         </div>

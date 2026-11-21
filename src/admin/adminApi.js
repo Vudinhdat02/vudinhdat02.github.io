@@ -11,6 +11,7 @@
  * password, then sign in with that password instead (see "password sign-in" below).
  */
 import { useCallback, useEffect, useState } from 'react';
+import { looksLikeImage, toWebImage } from '../utils/image';
 import { GITHUB } from '../data/site';
 import { previews } from '../utils/asset';
 
@@ -254,7 +255,11 @@ const slug = (s) =>
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 
 export async function uploadImage(file, name) {
-  if (!file.type.startsWith('image/')) throw new Error('Hãy chọn một file ảnh (JPG, PNG, WEBP)');
+  // HEIC, DNG hay file không rõ loại: đổi sang ảnh trình duyệt mở được trước
+  if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
+    if (!looksLikeImage(file)) throw new Error('Hãy chọn một file ảnh (JPG, PNG, WEBP, HEIC, DNG)');
+    file = await toWebImage(file);
+  }
   const dataUrl = await compressImage(file);
   if (!GH_MODE) return (await post('upload', { name, dataUrl })).url;
   const [head, b64] = dataUrl.split(',');

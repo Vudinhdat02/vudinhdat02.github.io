@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { IMAGE_ACCEPT } from '../utils/image';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Icon from '../components/Icons';
@@ -78,7 +79,7 @@ export function ImagePicker({ value, file, onFile }) {
         </div>
       )}
       {shown && <span className="ed-drop-change">{t('ed.changeImage')}</span>}
-      <input ref={inputRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
+      <input ref={inputRef} type="file" accept={IMAGE_ACCEPT} hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
     </div>
   );
 }
@@ -176,7 +177,7 @@ export function MultiImagePicker({ value, onChange }) {
         <Icon name="plus" size={26} />
         <span>{t('ed.addPhotos')}</span>
       </button>
-      <input ref={inputRef} type="file" accept="image/*" multiple hidden onChange={(e) => { add(e.target.files || []); e.target.value = ''; }} />
+      <input ref={inputRef} type="file" accept={IMAGE_ACCEPT} multiple hidden onChange={(e) => { add(e.target.files || []); e.target.value = ''; }} />
     </div>
   );
 }

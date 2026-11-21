@@ -18,7 +18,7 @@ import MAP from '../../data/vnmap.json';
 import travelData from '../../data/travel.json';
 import notesData from '../../data/travelnotes.json';
 import { asset } from '../../utils/asset';
-import { looksLikeImage, toWebImage } from '../../utils/image';
+import { IMAGE_ACCEPT, isDng, isHeic, looksLikeImage, toWebImage } from '../../utils/image';
 import { newId, uploadImage } from '../../admin/adminApi';
 import { useEditable, useEditableDoc } from '../Editor';
 import { useDiary } from '../Diary';
@@ -149,7 +149,7 @@ function PhotoForm({ init, onCancel, onSave }) {
     setErr(''); setBusy(true);
     const out = [];
     for (let k = 0; k < imgs.length; k++) {
-      setProg(`Đang đọc ảnh ${k + 1}/${imgs.length}…`);
+      setProg(`${isHeic(imgs[k]) || isDng(imgs[k]) ? `Đang chuyển ảnh ${isDng(imgs[k]) ? "DNG" : "HEIC"}` : "Đang đọc ảnh"} ${k + 1}/${imgs.length}…`);
       try { const web = await toWebImage(imgs[k]); out.push({ file: web, url: URL.createObjectURL(web) }); } catch (x) { setErr(x.message || 'Có ảnh không đọc được'); }
     }
     setFiles((old) => (many ? [...old, ...out] : out.slice(0, 1)));
@@ -173,7 +173,7 @@ function PhotoForm({ init, onCancel, onSave }) {
             <span key={u} className="tv-drop-it"><img src={u} alt="" />{files.length > 0 && <button type="button" onClick={(e) => { e.preventDefault(); removeAt(k); }} aria-label="Bỏ ảnh này">✕</button>}</span>
           ))}</span>
         ) : <span>📷 {many ? 'Chọn hoặc kéo thả một hay nhiều ảnh' : 'Chọn ảnh thay thế'} (JPG, PNG, HEIC…)</span>}
-        <input type="file" accept="image/*,.heic,.heif" multiple={many} onChange={pick} hidden />
+        <input type="file" accept={IMAGE_ACCEPT} multiple={many} onChange={pick} hidden />
       </label>
       {many && files.length > 0 && <p className="tv-hint2">Đã chọn {files.length} ảnh · bấm vào khung để chọn thêm. Thông tin dưới đây (nếu có) dùng chung cho các ảnh.</p>}
       <label><span>Tên ảnh (không bắt buộc)</span><input value={v.title} onChange={(e) => set('title', e.target.value)} placeholder="vd: Săn mây Ba Vì" /></label>

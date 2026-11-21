@@ -6,6 +6,7 @@
  * Khách xem trang bình thường không thấy nút sửa.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { IMAGE_ACCEPT } from '../utils/image';
 import { createPortal } from 'react-dom';
 import gsap from 'gsap';
 import { EDIT_MODE, GH_MODE, loadData, newId, saveData, uploadImage, useEditableList } from '../admin/adminApi';
@@ -169,7 +170,7 @@ function Form({ fields, init, onCancel, onSave, busy }) {
               <span>{f.label}</span>
               <div className="ed-img">
                 {pv ? <img src={pv} alt="" /> : <i>Chưa có ảnh</i>}
-                <label className="ed-btn">📷 Chọn ảnh<input type="file" accept="image/*" hidden onChange={(e) => { const fl = e.target.files?.[0]; if (fl) setFiles((o) => ({ ...o, [f.key]: fl })); }} /></label>
+                <label className="ed-btn">📷 Chọn ảnh<input type="file" accept={IMAGE_ACCEPT} hidden onChange={(e) => { const fl = e.target.files?.[0]; if (fl) setFiles((o) => ({ ...o, [f.key]: fl })); }} /></label>
                 {pv && <button type="button" className="ed-btn ghost" onClick={() => { setFiles((o) => ({ ...o, [f.key]: null })); set(f.key, ''); }}>Bỏ ảnh</button>}
               </div>
             </div>
