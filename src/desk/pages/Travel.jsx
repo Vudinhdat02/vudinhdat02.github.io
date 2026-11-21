@@ -195,24 +195,29 @@ function Spotlight({ shape, name, sub, photos }) {
   const [vb, setVb] = useState(null);
   useLayoutEffect(() => {
     const p = ref.current?.querySelector('.sp-main'); if (!p) return;
-    const b = p.getBBox(); const pad = Math.max(b.width, b.height) * 0.18;
-    setVb([b.x - pad, b.y - pad, b.width + pad * 2, b.height + pad * 2]);
+    // khung nhìn theo phần đất liền lớn nhất (cùng các đảo ở gần); đảo ở rất xa như Hoàng Sa, Trường Sa không làm hình bị thu nhỏ
+    const parts = (shape.d.match(/M[^M]+/g) || [shape.d]).map((d) => { const t = document.createElementNS('http://www.w3.org/2000/svg', 'path'); t.setAttribute('d', d); p.parentNode.appendChild(t); const bb = t.getBBox(); t.remove(); return bb; });
+    const main = parts.reduce((m, x) => (x.width * x.height > m.width * m.height ? x : m), parts[0]);
+    const ex = Math.max(main.width, main.height) * 0.6;
+    let x0 = main.x, y0 = main.y, x1 = main.x + main.width, y1 = main.y + main.height;
+    parts.forEach((q) => { const cx = q.x + q.width / 2, cy = q.y + q.height / 2; if (cx > main.x - ex && cx < main.x + main.width + ex && cy > main.y - ex && cy < main.y + main.height + ex) { x0 = Math.min(x0, q.x); y0 = Math.min(y0, q.y); x1 = Math.max(x1, q.x + q.width); y1 = Math.max(y1, q.y + q.height); } });
+    const w = x1 - x0, h = y1 - y0, pad = Math.max(w, h) * 0.14, side = Math.max(w, h) + pad * 2;
+    setVb([x0 + w / 2 - side / 2, y0 + h / 2 - side / 2, side, side]);
   }, [shape?.d]);
   useLayoutEffect(() => {
     if (!vb || reduced()) return undefined;
     const q = gsap.utils.selector(ref);
     const tl = gsap.timeline();
     const from = shape?.from, box = ref.current.querySelector('.sp-map')?.getBoundingClientRect();
-    if (from && box) tl.from(q('.sp-map'), { x: from.left + from.width / 2 - (box.left + box.width / 2), y: from.top + from.height / 2 - (box.top + box.height / 2), scale: Math.max(0.05, Math.min(from.width / box.width, from.height / box.height)), duration: 0.75, ease: 'power3.inOut' });
+    if (from && box) tl.from(q('.sp-map'), { clearProps: 'transform', x: from.left + from.width / 2 - (box.left + box.width / 2), y: from.top + from.height / 2 - (box.top + box.height / 2), scale: Math.max(0.05, Math.min(from.width / box.width, from.height / box.height)), duration: 0.75, ease: 'power3.inOut' });
     tl.fromTo(q('.sp-main'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.1, ease: 'power2.inOut' }, 0.2)
       .from(q('.sp-fill'), { opacity: 0, duration: 0.6 }, 0.7)
-      .from(q('.sp-other'), { opacity: 0, duration: 0.8, stagger: 0.01 }, 0.5)
       .from(q('.sp-name .ch'), { y: 40, opacity: 0, rotate: () => gsap.utils.random(-25, 25), duration: 0.5, stagger: 0.04, ease: 'back.out(2)' }, 0.5)
       .from(q('.sp-sub, .sp-thumbs > *'), { y: 16, opacity: 0, duration: 0.4, stagger: 0.06 }, 0.9);
     return () => tl.kill();
   }, [vb ? vb.join(',') : '']); // eslint-disable-line react-hooks/exhaustive-deps
   if (!shape?.d) return null;
-  const k = vb ? vb[2] / 300 : 1;
+  const k = vb ? vb[2] / 300 : 1; // ~ độ dày 1 điểm ảnh khi hình rộng khoảng 300 điểm ảnh
   return (
     <div className="tv-spot" ref={ref} aria-hidden="true">
       <div className="sp-map">
@@ -221,12 +226,10 @@ function Spotlight({ shape, name, sub, photos }) {
             <radialGradient id="sp-glow"><stop offset="0" stopColor="#ffe14d" stopOpacity="0.55" /><stop offset="1" stopColor="#ffe14d" stopOpacity="0" /></radialGradient>
             <linearGradient id="sp-fillg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#bfe9e4" /><stop offset="1" stopColor="#6fcfc6" /></linearGradient>
           </defs>
-          {vb && <ellipse className="sp-halo" cx={vb[0] + vb[2] / 2} cy={vb[1] + vb[3] / 2} rx={vb[2] * 0.48} ry={vb[3] * 0.48} fill="url(#sp-glow)" />}
-          {(shape.others || []).map((d, i) => <path key={i} className="sp-other" d={d} />)}
+          {vb && <ellipse className="sp-shadow" cx={vb[0] + vb[2] / 2} cy={vb[1] + vb[3] * 0.93} rx={vb[2] * 0.34} ry={vb[3] * 0.035} />}
           <path className="sp-fill" d={shape.d} fill="url(#sp-fillg)" />
-          <path className="sp-main" d={shape.d} pathLength="1" />
-          {vb && [0, 1, 2].map((i) => <circle key={i} className="sp-ring" cx={vb[0] + vb[2] / 2} cy={vb[1] + vb[3] / 2} r={vb[2] * 0.2} style={{ animationDelay: `${i * 1.3}s`, strokeWidth: 2 * k }} />)}
-          {vb && Array.from({ length: 7 }, (_, i) => <circle key={'s' + i} className="sp-spark" cx={vb[0] + vb[2] * (0.15 + ((i * 37) % 70) / 100)} cy={vb[1] + vb[3] * (0.15 + ((i * 53) % 70) / 100)} r={3 * k} style={{ animationDelay: `${i * 0.55}s` }} />)}
+          <path className="sp-main" d={shape.d} pathLength="1" style={{ strokeWidth: vb ? vb[2] * 0.008 : 1 }} />
+          {vb && Array.from({ length: 4 }, (_, i) => <circle key={'s' + i} className="sp-spark" cx={vb[0] + vb[2] * (0.15 + ((i * 37) % 70) / 100)} cy={vb[1] + vb[3] * (0.15 + ((i * 53) % 70) / 100)} r={3 * k} style={{ animationDelay: `${i * 0.55}s` }} />)}
         </svg>
       </div>
       <h2 className="sp-name">{[...name].map((c, i) => <span key={i} className="ch">{c === ' ' ? ' ' : c}</span>)}</h2>
