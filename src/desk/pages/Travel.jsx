@@ -134,46 +134,110 @@ function Viewer({ list, at, onClose }) {
 
 /* ---------- khung thêm / sửa một ảnh ---------- */
 function PhotoForm({ init, onCancel, onSave }) {
+  const many = !init.id; // thêm mới: chọn được nhiều ảnh một lúc; sửa: thay một ảnh
   const [v, setV] = useState(init);
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(init.image ? asset(init.image) : '');
+  const [files, setFiles] = useState([]); // [{ file, url }]
   const [busy, setBusy] = useState(false);
+  const [prog, setProg] = useState('');
   const [err, setErr] = useState('');
+  const [over, setOver] = useState(false);
   const set = (k, x) => setV((o) => ({ ...o, [k]: x }));
-  const pick = async (e) => {
-    const f = e.target.files?.[0]; e.target.value = '';
-    if (!f || !looksLikeImage(f)) return;
+  useEffect(() => () => files.forEach((f) => URL.revokeObjectURL(f.url)), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const addFiles = async (list) => {
+    const imgs = [...list].filter(looksLikeImage);
+    if (!imgs.length) return;
     setErr(''); setBusy(true);
-    try { const web = await toWebImage(f); setFile(web); setPreview(URL.createObjectURL(web)); } catch (x) { setErr(x.message || 'Không đọc được ảnh'); }
-    setBusy(false);
+    const out = [];
+    for (let k = 0; k < imgs.length; k++) {
+      setProg(`Đang đọc ảnh ${k + 1}/${imgs.length}…`);
+      try { const web = await toWebImage(imgs[k]); out.push({ file: web, url: URL.createObjectURL(web) }); } catch (x) { setErr(x.message || 'Có ảnh không đọc được'); }
+    }
+    setFiles((old) => (many ? [...old, ...out] : out.slice(0, 1)));
+    setProg(''); setBusy(false);
   };
+  const pick = (e) => { const fl = e.target.files; addFiles(fl); e.target.value = ''; };
+  const drop = (e) => { e.preventDefault(); setOver(false); addFiles(e.dataTransfer.files); };
+  const removeAt = (k) => setFiles((old) => old.filter((_, i) => i !== k));
   const submit = async (e) => {
     e.preventDefault();
-    if (!v.title.trim()) { setErr('Hãy đặt tên cho ảnh'); return; }
-    if (!file && !v.image) { setErr('Hãy chọn một ảnh'); return; }
+    if (!files.length && !v.image) { setErr('Hãy chọn ít nhất một ảnh'); return; }
     setBusy(true); setErr('');
-    try { await onSave(v, file); } catch (x) { setErr(x.message || 'Chưa lưu được, thử lại nhé'); setBusy(false); }
+    try { await onSave(v, files.map((f) => f.file), (t) => setProg(t)); } catch (x) { setErr(x.message || 'Chưa lưu được, thử lại nhé'); setBusy(false); setProg(''); }
   };
+  const shown = files.length ? files.map((f) => f.url) : v.image ? [asset(v.image)] : [];
   return (
     <form className="tv-form" onSubmit={submit}>
-      <label className="tv-drop">
-        {preview ? <img src={preview} alt="" /> : <span>📷 Chọn ảnh (JPG, PNG, HEIC…)</span>}
-        <input type="file" accept="image/*,.heic,.heif" onChange={pick} hidden />
+      <label className={`tv-drop ${over ? 'over' : ''} ${shown.length > 1 ? 'multi' : ''}`} onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={drop}>
+        {shown.length ? (
+          <span className="tv-drop-grid">{shown.map((u, k) => (
+            <span key={u} className="tv-drop-it"><img src={u} alt="" />{files.length > 0 && <button type="button" onClick={(e) => { e.preventDefault(); removeAt(k); }} aria-label="Bỏ ảnh này">✕</button>}</span>
+          ))}</span>
+        ) : <span>📷 {many ? 'Chọn hoặc kéo thả một hay nhiều ảnh' : 'Chọn ảnh thay thế'} (JPG, PNG, HEIC…)</span>}
+        <input type="file" accept="image/*,.heic,.heif" multiple={many} onChange={pick} hidden />
       </label>
-      <label><span>Tên ảnh</span><input value={v.title} onChange={(e) => set('title', e.target.value)} placeholder="vd: Săn mây Ba Vì" /></label>
+      {many && files.length > 0 && <p className="tv-hint2">Đã chọn {files.length} ảnh · bấm vào khung để chọn thêm. Thông tin dưới đây (nếu có) dùng chung cho các ảnh.</p>}
+      <label><span>Tên ảnh (không bắt buộc)</span><input value={v.title} onChange={(e) => set('title', e.target.value)} placeholder="vd: Săn mây Ba Vì" /></label>
       <div className="tv-2">
         <label><span>Ngày</span><input value={v.date} onChange={(e) => set('date', e.target.value)} placeholder="vd: 04/11/2026" /></label>
         <label><span>Địa điểm</span><input value={v.place} onChange={(e) => set('place', e.target.value)} placeholder="vd: Vườn quốc gia Ba Vì" /></label>
       </div>
       <label><span>Mô tả</span><textarea rows={3} value={v.desc} onChange={(e) => set('desc', e.target.value)} /></label>
+      {prog && <p className="tv-prog">{prog}</p>}
       {err && <p className="tv-err">{err}</p>}
-      <div className="tv-row"><button type="button" className="tv-btn ghost" onClick={onCancel}>Huỷ</button><button className="tv-btn" disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu ảnh'}</button></div>
+      <div className="tv-row"><button type="button" className="tv-btn ghost" onClick={onCancel}>Huỷ</button><button className="tv-btn" disabled={busy}>{busy ? 'Đang lưu…' : many && files.length > 1 ? `Lưu ${files.length} ảnh` : 'Lưu ảnh'}</button></div>
     </form>
   );
 }
 
+/* ---------- bên trái ngăn ảnh: hình bản đồ của tỉnh / nước đang xem, kèm tên lớn ---------- */
+function Spotlight({ shape, name, sub, photos }) {
+  const ref = useRef(null);
+  const [vb, setVb] = useState(null);
+  useLayoutEffect(() => {
+    const p = ref.current?.querySelector('.sp-main'); if (!p) return;
+    const b = p.getBBox(); const pad = Math.max(b.width, b.height) * 0.18;
+    setVb([b.x - pad, b.y - pad, b.width + pad * 2, b.height + pad * 2]);
+  }, [shape?.d]);
+  useLayoutEffect(() => {
+    if (!vb || reduced()) return undefined;
+    const q = gsap.utils.selector(ref);
+    const tl = gsap.timeline();
+    const from = shape?.from, box = ref.current.querySelector('.sp-map')?.getBoundingClientRect();
+    if (from && box) tl.from(q('.sp-map'), { x: from.left + from.width / 2 - (box.left + box.width / 2), y: from.top + from.height / 2 - (box.top + box.height / 2), scale: Math.max(0.05, Math.min(from.width / box.width, from.height / box.height)), duration: 0.75, ease: 'power3.inOut' });
+    tl.fromTo(q('.sp-main'), { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.1, ease: 'power2.inOut' }, 0.2)
+      .from(q('.sp-fill'), { opacity: 0, duration: 0.6 }, 0.7)
+      .from(q('.sp-other'), { opacity: 0, duration: 0.8, stagger: 0.01 }, 0.5)
+      .from(q('.sp-name .ch'), { y: 40, opacity: 0, rotate: () => gsap.utils.random(-25, 25), duration: 0.5, stagger: 0.04, ease: 'back.out(2)' }, 0.5)
+      .from(q('.sp-sub, .sp-thumbs > *'), { y: 16, opacity: 0, duration: 0.4, stagger: 0.06 }, 0.9);
+    return () => tl.kill();
+  }, [vb ? vb.join(',') : '']); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!shape?.d) return null;
+  const k = vb ? vb[2] / 300 : 1;
+  return (
+    <div className="tv-spot" ref={ref} aria-hidden="true">
+      <div className="sp-map">
+        <svg viewBox={vb ? vb.join(' ') : '0 0 100 100'}>
+          <defs>
+            <radialGradient id="sp-glow"><stop offset="0" stopColor="#ffe14d" stopOpacity="0.55" /><stop offset="1" stopColor="#ffe14d" stopOpacity="0" /></radialGradient>
+            <linearGradient id="sp-fillg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#bfe9e4" /><stop offset="1" stopColor="#6fcfc6" /></linearGradient>
+          </defs>
+          {vb && <ellipse className="sp-halo" cx={vb[0] + vb[2] / 2} cy={vb[1] + vb[3] / 2} rx={vb[2] * 0.48} ry={vb[3] * 0.48} fill="url(#sp-glow)" />}
+          {(shape.others || []).map((d, i) => <path key={i} className="sp-other" d={d} />)}
+          <path className="sp-fill" d={shape.d} fill="url(#sp-fillg)" />
+          <path className="sp-main" d={shape.d} pathLength="1" />
+          {vb && [0, 1, 2].map((i) => <circle key={i} className="sp-ring" cx={vb[0] + vb[2] / 2} cy={vb[1] + vb[3] / 2} r={vb[2] * 0.2} style={{ animationDelay: `${i * 1.3}s`, strokeWidth: 2 * k }} />)}
+          {vb && Array.from({ length: 7 }, (_, i) => <circle key={'s' + i} className="sp-spark" cx={vb[0] + vb[2] * (0.15 + ((i * 37) % 70) / 100)} cy={vb[1] + vb[3] * (0.15 + ((i * 53) % 70) / 100)} r={3 * k} style={{ animationDelay: `${i * 0.55}s` }} />)}
+        </svg>
+      </div>
+      <h2 className="sp-name">{[...name].map((c, i) => <span key={i} className="ch">{c === ' ' ? ' ' : c}</span>)}</h2>
+      {sub && <p className="sp-sub">{sub}</p>}
+      {photos.length > 0 && <div className="sp-thumbs">{photos.slice(0, 5).map((p, i) => <img key={p.id} src={asset(p.image)} alt="" style={{ '--r': `${(i - 2) * 6}deg` }} />)}</div>}
+    </div>
+  );
+}
+
 /* ---------- ngăn bên phải (điện thoại: tấm kéo từ dưới lên) ---------- */
-function Panel({ prov, photos, note, canEdit, onClose, onView, onSavePhoto, onDelete, onSaveNote }) {
+function Panel({ prov, photos, note, canEdit, onClose, onView, onSavePhoto, onDelete, onSaveNote, shape }) {
   const ref = useRef(null);
   const [form, setForm] = useState(null);
   const [editNote, setEditNote] = useState(false);
@@ -195,6 +259,7 @@ function Panel({ prov, photos, note, canEdit, onClose, onView, onSavePhoto, onDe
   return createPortal(
     <div className="tv-wrap" ref={ref}>
       <div className="tv-bg" onClick={onClose} />
+      <Spotlight shape={shape} name={prov.name.split(' · ')[0]} sub={prov.name.includes(' · ') ? prov.name.split(' · ').slice(1).join(' · ') : (photos.length ? `${photos.length} tấm ảnh kỷ niệm` : 'Chưa có ảnh nào ở đây')} photos={photos} />
       <aside className="tv-sheet" role="dialog" aria-label={prov.name}>
         <header className="tv-head">
           <div><small>{photos.length ? `Đã đến · ${photos.length} ảnh` : 'Chưa có ảnh'}</small><h2>{prov.name}</h2></div>
@@ -210,7 +275,7 @@ function Panel({ prov, photos, note, canEdit, onClose, onView, onSavePhoto, onDe
             <p className="tv-note">{note || <i>Chưa có ghi chú cho nơi này.</i>}{canEdit && <button className="tv-link" onClick={() => setEditNote(true)}>✎ Sửa ghi chú</button>}</p>
           )}
           {form ? (
-            <PhotoForm init={form} onCancel={() => setForm(null)} onSave={async (v, f) => { await onSavePhoto(v, f); setForm(null); }} />
+            <PhotoForm init={form} onCancel={() => setForm(null)} onSave={async (v, f, prog) => { await onSavePhoto(v, f, prog); setForm(null); }} />
           ) : (
             <>
               {canEdit && <button className="tv-btn add" onClick={() => setForm(BLANK(prov.id))}>＋ Thêm ảnh ở {prov.name}</button>}
@@ -218,8 +283,8 @@ function Panel({ prov, photos, note, canEdit, onClose, onView, onSavePhoto, onDe
                 <div className="tv-grid">
                   {photos.map((p, k) => (
                     <figure key={p.id} className="tv-ph">
-                      <button className="tv-pic" onClick={() => onView(k)} aria-label={`Xem ảnh: ${p.title}`}><img src={asset(p.image)} alt={p.title} loading="lazy" /></button>
-                      <figcaption><b>{p.title}</b><small>{[p.place, p.date].filter(Boolean).join(' · ')}</small></figcaption>
+                      <button className="tv-pic" onClick={() => onView(k)} aria-label={`Xem ảnh${p.title ? ': ' + p.title : ''}`}><img src={asset(p.image)} alt={p.title} loading="lazy" /></button>
+                      <figcaption><b>{p.title || ' '}</b><small>{[p.place, p.date].filter(Boolean).join(' · ') || ' '}</small></figcaption>
                       {canEdit && <span className="tv-act"><button onClick={() => setForm(p)} aria-label="Sửa ảnh">✎</button><button onClick={() => onDelete(p)} aria-label="Xoá ảnh">🗑</button></span>}
                     </figure>
                   ))}
@@ -327,6 +392,17 @@ export default function TravelPage() {
   const visitedProv = MAP.provinces.filter((p) => byPlace[p.id]?.length);
   const visitedIso = Object.keys(countIso).filter((c) => c !== 'VNM');
   const photos = sel ? byPlace[sel] || [] : [];
+  const shapeOf = (key) => {
+    if (!key) return null;
+    const el = svgRef.current?.querySelector(`[data-key="${CSS.escape(key)}"]`);
+    const from = el?.getBoundingClientRect();
+    if (!key.startsWith('qg:')) { const pv = MAP.provinces.find((x) => x.id === key); return pv && { d: pv.d, others: MAP.provinces.filter((x) => x.id !== key).map((x) => x.d), from }; }
+    const [, c, r] = key.split(':');
+    if (r && land.data?.iso === c) { const rg = land.data.regions.find((x) => x.id === r); return rg && { d: rg.d, others: land.data.regions.filter((x) => x.id !== r).map((x) => x.d), from }; }
+    if (!r && land.data?.iso === c) return { d: land.data.regions.map((x) => x.d).join(''), others: [], from };
+    const ct = world.data?.countries.find((x) => x.id === c); return ct && { d: ct.d, others: [], from };
+  };
+  const shape = useMemo(() => shapeOf(sel), [sel, !!land.data, !!world.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const place = sel ? { id: sel, name: nameOf(sel) } : null;
 
   /* hiệu ứng khi đổi chế độ: các vùng hiện dần */
@@ -351,14 +427,22 @@ export default function TravelPage() {
     if (vn) setTimeout(() => zoom.focus({ cx: vn.cx + ox, cy: vn.cy + oy }, 3), 50);
   }, [mode, !!world.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const savePhoto = async (v, file) => {
-    let image = v.image;
-    if (file) image = ed.demo ? URL.createObjectURL(file) : await uploadImage(file, v.title || 'du-lich');
-    const item = { ...v, image, id: v.id || newId() };
-    const next = v.id ? ed.items.map((x) => (x.id === v.id ? item : x)) : [item, ...ed.items];
+  /* lưu ảnh: sửa một ảnh, hoặc thêm nhiều ảnh cùng lúc (tải từng ảnh lên rồi ghi danh sách một lần) */
+  const savePhoto = async (v, files = [], prog = () => {}) => {
+    const up = async (f, k) => { prog(`Đang tải ảnh ${k + 1}/${files.length}…`); return ed.demo ? URL.createObjectURL(f) : uploadImage(f, v.title || nameOf(v.province) || 'du-lich'); };
+    let next;
+    if (v.id) {
+      const image = files[0] ? await up(files[0], 0) : v.image;
+      next = ed.items.map((x) => (x.id === v.id ? { ...v, image } : x));
+    } else {
+      const added = [];
+      for (let k = 0; k < files.length; k++) added.push({ ...v, image: await up(files[k], k), id: newId() });
+      next = [...added, ...ed.items];
+    }
+    prog('Đang lưu…');
     if (!(await ed.save(next))) throw new Error(ed.status.error || 'Chưa lưu được, thử lại nhé');
   };
-  const del = async (p) => { if (!window.confirm(`Xoá ảnh "${p.title}"?`)) return; await ed.save(ed.items.filter((x) => x.id !== p.id)); };
+  const del = async (p) => { if (!window.confirm(p.title ? `Xoá ảnh "${p.title}"?` : 'Xoá ảnh này?')) return; await ed.save(ed.items.filter((x) => x.id !== p.id)); };
   const saveNote = (text) => notes.save({ ...(notes.doc || {}), [sel]: text });
   const pick = (key) => { if (svgRef.current?.dataset.drag) return; setSel(key); };
   const goMode = (m) => { setMode(m); setSel(null); setHover(null); setQ(''); if (m !== 'country') setIso(null); };
@@ -384,7 +468,7 @@ export default function TravelPage() {
         {SEA_LABELS.map((x) => <text key={x.n} className="sea-name" x={x.xy[0]} y={x.xy[1]} fontSize={x.f * Math.max(0.4, zoom.s)} textAnchor="middle">{x.n}</text>)}
         {MAP.provinces.map((p) => {
           const n = byPlace[p.id]?.length || 0;
-          return <path key={p.id} d={p.d} className={`rg pv l${level(n)} ${sel === p.id ? 'on' : ''} ${hover?.id === p.id ? 'hov' : ''}`}
+          return <path key={p.id} data-key={p.id} d={p.d} className={`rg pv l${level(n)} ${sel === p.id ? 'on' : ''} ${hover?.id === p.id ? 'hov' : ''}`}
             onPointerMove={(e) => track(e, p.id, 'prov')} onPointerLeave={() => setHover(null)} onClick={() => pick(p.id)}
             tabIndex={0} role="button" aria-label={`${p.name}${n ? `, ${n} ảnh` : ''}`} onKeyDown={(e) => e.key === 'Enter' && setSel(p.id)} />;
         })}
@@ -449,7 +533,7 @@ export default function TravelPage() {
         <>
           {L.regions.map((r) => {
             const key = `qg:${iso}:${r.id}`, n = byPlace[key]?.length || 0;
-            return <path key={r.id} d={r.d} className={`rg pv l${level(n)} ${sel === key ? 'on' : ''} ${hover?.id === key ? 'hov' : ''}`}
+            return <path key={r.id} data-key={key} d={r.d} className={`rg pv l${level(n)} ${sel === key ? 'on' : ''} ${hover?.id === key ? 'hov' : ''}`}
               onPointerMove={(e) => track(e, key, 'region')} onPointerLeave={() => setHover(null)} onClick={() => pick(key)}
               tabIndex={0} role="button" aria-label={`${r.name}${n ? `, ${n} ảnh` : ''}`} onKeyDown={(e) => e.key === 'Enter' && setSel(key)} />;
           })}
@@ -522,7 +606,7 @@ export default function TravelPage() {
       {hover && hover.x != null && <CursorTip x={hover.x} y={hover.y} name={tipText} img={thumbOf(hover)} count={tipCount} country={hover.kind === 'country'} />}
       {place && (
         <Panel prov={place} photos={photos} note={(notes.doc || {})[place.id]} canEdit={ed.canEdit}
-          onClose={() => setSel(null)} onView={(k) => setView(k)} onSavePhoto={savePhoto} onDelete={del} onSaveNote={saveNote} />
+          onClose={() => setSel(null)} onView={(k) => setView(k)} onSavePhoto={savePhoto} onDelete={del} onSaveNote={saveNote} shape={shape} />
       )}
       {place && view != null && photos[view] && <Viewer list={photos} at={view} onClose={() => setView(null)} />}
     </div>
