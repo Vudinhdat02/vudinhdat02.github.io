@@ -1,7 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#111827"/>
-<rect x="92" y="116" width="328" height="280" rx="36" fill="none" stroke="#FFFFFF" stroke-width="28"/>
-<path d="M92 152a36 36 0 0 1 36-36h256a36 36 0 0 1 36 36v28H92z" fill="#FFFFFF"/>
-<g fill="#111827"><circle cx="134" cy="150" r="11"/><circle cx="168" cy="150" r="11"/><circle cx="202" cy="150" r="11"/></g>
-<path d="M150 240l58 46-58 46" fill="none" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M240 336h104" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 18 72 72" width="512" height="512">
+  <rect x="18" y="18" width="72" height="72" rx="16" fill="#1565C0"/>
+  <g transform="translate(30 30)">
+    <path d="M4,4h16a2,2 0 0 1 2,2v12a2,2 0 0 1 -2,2h-16a2,2 0 0 1 -2,-2v-12a2,2 0 0 1 2,-2z" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M5.8,10.2a2.2,2.2 0 1 0 4.4,0a2.2,2.2 0 1 0 -4.4,0z" fill="#FFFFFF"/>
+    <path d="M5,16.5c0.6,-1.8 1.7,-2.6 3,-2.6s2.4,0.8 3,2.6" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M14,10h5" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M14,14h3" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>
